@@ -217,6 +217,16 @@ app.post(
   }
 );
 
+function limpiarCantidad(valor: any): number {
+  if (valor === null || valor === undefined) return 0;
+
+  const num = Number(valor);
+
+  if (isNaN(num)) return 0;
+
+  return Math.floor(num); // ⬅️ redondea hacia abajo
+}
+
 app.post(
   "/importar-excel-odoo",
   upload.single("file"),
@@ -251,7 +261,7 @@ app.post(
 
           await pool.query(
             "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
-            [Number(data.cantidad) || 0, data.refInterna]
+            [Number(limpiarCantidad(data.cantidad)) || 0, data.refInterna]
           );
           actualizados++;
 
@@ -266,7 +276,7 @@ app.post(
             [
               data.nombreProd,
               data.refInterna,
-              Number(data.cantidad) || 0,
+              Number(limpiarCantidad(data.cantidad)) || 0,
               data.unidad,
               data.palClave
             ]
