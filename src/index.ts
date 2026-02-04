@@ -27,13 +27,15 @@ app.get("/health", async (_req, res) => {
     const result = await pool.query("SELECT NOW()");
     res.json({
       ok: true,
-      message: "Backend y BD conectados",
+      message: "Backend y base de datos conectados",
       time: result.rows[0].now,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       ok: false,
-      message: "Error conectando a la BD",
+      message: "Error conectando a la base de datos",
     });
   }
 });
+
