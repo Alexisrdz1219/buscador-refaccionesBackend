@@ -52,6 +52,10 @@ app.get("/refacciones", async (_, res) => {
   res.json(result.rows);
 });
 
+const sleep = (ms: number) =>
+  new Promise(resolve => setTimeout(resolve, ms));
+
+
 const mapOdoo: any = {
   "Referencia interna": "refInterna",
   "Cantidad a la mano": "cantidad",
@@ -300,3 +304,35 @@ app.post(
     }
   }
 );
+
+app.get("/refacciones-paginadas", async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 50;
+  const offset = (page - 1) * limit;
+
+  try {
+    const data = await pool.query(
+      `
+      SELECT * FROM refacciones
+      ORDER BY id ASC
+      LIMIT $1 OFFSET $2
+      `,
+      [limit, offset]
+    );
+
+    const total = await pool.query(
+      "SELECT COUNT(*) FROM refacciones"
+    );
+
+    res.json({
+      rows: data.rows,
+      total: Number(total.rows[0].count),
+      page,
+      limit
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false });
+  }
+});
