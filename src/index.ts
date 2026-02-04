@@ -52,6 +52,15 @@ app.get("/refacciones", async (_, res) => {
   res.json(result.rows);
 });
 
+const mapOdoo: any = {
+  "Referencia interna": "refInterna",
+  "Cantidad a la mano": "cantidad",
+  "Unidad de medida": "unidad",
+  "Nombre": "nombreProd",
+  "Etiquetas de la plantilla del producto": "palClave"
+};
+
+
 app.post(
   "/importar-excel",
   upload.single("file"),
@@ -199,6 +208,80 @@ app.post(
         ok: true,
         nuevos,
         actualizar
+      });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ ok: false });
+    }
+  }
+);
+
+app.post(
+  "/importar-excel-odoo",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const workbook = XLSX.read(req.file!.buffer);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+
+      let insertados = 0;
+      let actualizados = 0;
+      const nuevos: any[] = [];
+
+      for (const row of rows) {
+
+        // Convertimos columnas Odoo → BD
+        const data: any = {};
+
+        for (const colOdoo in mapOdoo) {
+          const colBD = mapOdoo[colOdoo];
+          data[colBD] = row[colOdoo];
+        }
+
+        if (!data.refInterna) continue;
+
+        const existe = await pool.query(
+          "SELECT id FROM refacciones WHERE refinterna = $1",
+          [data.refInterna]
+        );
+
+        if (existe.rows.length > 0) {
+
+          await pool.query(
+            "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
+            [Number(data.cantidad) || 0, data.refInterna]
+          );
+          actualizados++;
+
+        } else {
+
+          await pool.query(
+            `
+            INSERT INTO refacciones
+            (nombreprod, refinterna, cantidad, unidad, palclave)
+            VALUES ($1,$2,$3,$4,$5)
+            `,
+            [
+              data.nombreProd,
+              data.refInterna,
+              Number(data.cantidad) || 0,
+              data.unidad,
+              data.palClave
+            ]
+          );
+
+          nuevos.push(data);
+          insertados++;
+        }
+      }
+
+      res.json({
+        ok: true,
+        insertados,
+        actualizados,
+        nuevos
       });
 
     } catch (error) {
