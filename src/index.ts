@@ -21,3 +21,19 @@ app.get("/test", async (req, res) => {
 app.listen(5000, () => {
   console.log("Backend vivo en puerto 5000");
 });
+
+app.get("/health", async (_req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json({
+      ok: true,
+      message: "Backend y BD conectados",
+      time: result.rows[0].now,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: "Error conectando a la BD",
+    });
+  }
+});
