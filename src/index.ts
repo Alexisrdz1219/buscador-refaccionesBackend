@@ -40,6 +40,12 @@ app.get("/health", async (_req, res) => {
     });
   }
 });
-
+//  tabla de refacciones
+app.get("/refacciones", async (_, res) => {
+  const result = await pool.query(
+    "SELECT * FROM refacciones ORDER BY id ASC"
+  );
+  res.json(result.rows);
+});
 
 
