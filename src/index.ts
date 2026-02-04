@@ -1,4 +1,4 @@
-import express, { Router } from "express";
+import express from "express";
 import cors from "cors";
 import { Pool } from "pg";
 import dotenv from "dotenv";
@@ -126,25 +126,40 @@ app.post(
   }
 );
 
-const router = Router();
-
-router.put("/refacciones/:id", async (req, res) => {
+app.put("/refacciones/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { cantidad, ubicacion, observacion } = req.body;
 
     await pool.query(
       `UPDATE refacciones
-       SET cantidad=$1,
-           ubicacion=$2,
-           observacion=$3
-       WHERE id=$4`,
+       SET cantidad = $1,
+           ubicacion = $2,
+           observacion = $3
+       WHERE id = $4`,
       [cantidad, ubicacion, observacion, id]
     );
 
     res.json({ ok: true });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ ok: false });
   }
 });
 
+
+app.delete("/refacciones/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await pool.query(
+      "DELETE FROM refacciones WHERE id = $1",
+      [id]
+    );
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false });
+  }
+});
