@@ -163,3 +163,47 @@ app.delete("/refacciones/:id", async (req, res) => {
     res.status(500).json({ ok: false });
   }
 });
+
+app.post(
+  "/preview-excel",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const workbook = XLSX.read(req.file!.buffer);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+
+      const nuevos: any[] = [];
+      const actualizar: any[] = [];
+
+      for (const row of rows) {
+        if (!row.refInterna) continue;
+
+        const existe = await pool.query(
+          "SELECT id, cantidad FROM refacciones WHERE refinterna = $1",
+          [row.refInterna]
+        );
+
+        if (existe.rows.length > 0) {
+          actualizar.push({
+            refInterna: row.refInterna,
+            cantidadActual: existe.rows[0].cantidad,
+            cantidadNueva: Number(row.cantidad) || 0
+          });
+        } else {
+          nuevos.push(row);
+        }
+      }
+
+      res.json({
+        ok: true,
+        nuevos,
+        actualizar
+      });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ ok: false });
+    }
+  }
+);
