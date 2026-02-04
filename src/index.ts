@@ -261,7 +261,7 @@ app.post(
 
           await pool.query(
             "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
-            [Number(limpiarCantidad(data.cantidad)) || 0, data.refInterna]
+            [limpiarCantidad((data.cantidad)) || 0, data.refInterna]
           );
           actualizados++;
 
@@ -276,7 +276,7 @@ app.post(
             [
               data.nombreProd,
               data.refInterna,
-              Number(limpiarCantidad(data.cantidad)) || 0,
+              limpiarCantidad((data.cantidad)) || 0,
               data.unidad,
               data.palClave
             ]
