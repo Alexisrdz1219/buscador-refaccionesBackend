@@ -3,6 +3,7 @@ import cors from "cors";
 import { Pool } from "pg";
 import dotenv from "dotenv";
 
+
 dotenv.config();
 
 const app = express();
@@ -11,6 +12,7 @@ app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
 app.get("/test", async (req, res) => {
@@ -38,4 +40,6 @@ app.get("/health", async (_req, res) => {
     });
   }
 });
+
+
 
