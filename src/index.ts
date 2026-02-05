@@ -155,7 +155,8 @@ app.put("/refacciones/:id", async (req, res) => {
       unidad,
       ubicacion,
       observacion,
-      imagen
+      imagen,
+      compatibilidad
     } = req.body;
 
     await pool.query(
@@ -173,8 +174,9 @@ app.put("/refacciones/:id", async (req, res) => {
         unidad=$10,
         ubicacion=$11,
         observacion=$12,
-        imagen=$13
-      WHERE id=$14
+        imagen=$13,
+        compatibilidad = $14
+WHERE id = $15
       `,
       [
         nombreprod,
@@ -190,6 +192,7 @@ app.put("/refacciones/:id", async (req, res) => {
         ubicacion,
         observacion,
         imagen,
+        JSON.stringify(compatibilidad || []),
         id
       ]
     );
