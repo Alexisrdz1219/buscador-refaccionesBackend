@@ -349,21 +349,54 @@ app.post(
 
 app.get("/refacciones-paginadas", async (req, res) => {
   const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 50;
+  const limit = Number(req.query.limit) || 24;
   const offset = (page - 1) * limit;
+
+  const search = req.query.search
+    ? `%${req.query.search}%`
+    : "%";
+
+  const stock = req.query.stock || "";
 
   try {
     const data = await pool.query(
       `
-      SELECT * FROM refacciones
+      SELECT *
+      FROM refacciones
+      WHERE (
+        nombreprod ILIKE $1
+        OR refinterna ILIKE $1
+        OR palclave ILIKE $1
+      )
+      AND (
+        $2 = ''
+        OR ($2 = 'ok' AND cantidad >= 5)
+        OR ($2 = 'low' AND cantidad BETWEEN 1 AND 4)
+        OR ($2 = 'zero' AND cantidad = 0)
+      )
       ORDER BY id ASC
-      LIMIT $1 OFFSET $2
+      LIMIT $3 OFFSET $4
       `,
-      [limit, offset]
+      [search, stock, limit, offset]
     );
 
     const total = await pool.query(
-      "SELECT COUNT(*) FROM refacciones"
+      `
+      SELECT COUNT(*)
+      FROM refacciones
+      WHERE (
+        nombreprod ILIKE $1
+        OR refinterna ILIKE $1
+        OR palclave ILIKE $1
+      )
+      AND (
+        $2 = ''
+        OR ($2 = 'ok' AND cantidad >= 5)
+        OR ($2 = 'low' AND cantidad BETWEEN 1 AND 4)
+        OR ($2 = 'zero' AND cantidad = 0)
+      )
+      `,
+      [search, stock]
     );
 
     res.json({
@@ -378,6 +411,7 @@ app.get("/refacciones-paginadas", async (req, res) => {
     res.status(500).json({ ok: false });
   }
 });
+
 
 app.get("/refacciones/:id", async (req, res) => {
   try {
