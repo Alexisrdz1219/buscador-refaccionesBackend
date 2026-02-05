@@ -142,15 +142,56 @@ app.post(
 app.put("/refacciones/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { cantidad, ubicacion, observacion } = req.body;
+    const {
+      nombreprod,
+      categoriaprin,
+      maquinamod,
+      maquinaesp,
+      tipoprod,
+      modelo,
+      refinterna,
+      palclave,
+      cantidad,
+      unidad,
+      ubicacion,
+      observacion,
+      imagen
+    } = req.body;
 
     await pool.query(
-      `UPDATE refacciones
-       SET cantidad = $1,
-           ubicacion = $2,
-           observacion = $3
-       WHERE id = $4`,
-      [cantidad, ubicacion, observacion, id]
+      `
+      UPDATE refacciones SET
+        nombreprod=$1,
+        categoriaprin=$2,
+        maquinamod=$3,
+        maquinaesp=$4,
+        tipoprod=$5,
+        modelo=$6,
+        refinterna=$7,
+        palclave=$8,
+        cantidad=$9,
+        unidad=$10,
+        ubicacion=$11,
+        observacion=$12,
+        imagen=$13
+      WHERE id=$14
+      `,
+      [
+        nombreprod,
+        categoriaprin,
+        maquinamod,
+        maquinaesp,
+        tipoprod,
+        modelo,
+        refinterna,
+        palclave,
+        cantidad,
+        unidad,
+        ubicacion,
+        observacion,
+        imagen,
+        id
+      ]
     );
 
     res.json({ ok: true });
@@ -159,6 +200,7 @@ app.put("/refacciones/:id", async (req, res) => {
     res.status(500).json({ ok: false });
   }
 });
+
 
 
 app.delete("/refacciones/:id", async (req, res) => {
@@ -333,6 +375,26 @@ app.get("/refacciones-paginadas", async (req, res) => {
 
   } catch (err) {
     console.error(err);
+    res.status(500).json({ ok: false });
+  }
+});
+
+app.get("/refacciones/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      "SELECT * FROM refacciones WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ ok: false });
   }
 });
