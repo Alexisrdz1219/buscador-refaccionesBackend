@@ -606,3 +606,19 @@ app.get("/opciones/maquinaesp", (_req, res) => {
   res.json(especificas.map(e => ({ valor: e })));
 });
 
+app.get("/refacciones", async (req, res) => {
+  const { marca, modelo, maquina } = req.query;
+
+  const result = await pool.query(
+    `
+    SELECT * FROM refacciones
+    WHERE 
+      ($1::text IS NULL OR categoriaprin = $1)
+      AND ($2::text IS NULL OR maquinamod = $2)
+      AND ($3::text IS NULL OR maquinaesp = $3)
+    `,
+    [marca || null, modelo || null, maquina || null]
+  );
+
+  res.json(result.rows);
+});
