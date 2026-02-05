@@ -411,12 +411,46 @@ app.post(
       let insertados = 0;
       let actualizados = 0;
 
-      for (const row of rows) {
+      const errores: any[] = [];
+      const refsVistas = new Set<string>();
 
-        const refInterna = row["Referencia interna"];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        const refInterna = row["Referencia interna"]?.toString().trim();
         const cantidad = limpiarCantidad(row["Cantidad a la mano"]);
 
-        if (!refInterna || isNaN(cantidad)) continue;
+        // ❌ referencia vacía
+        if (!refInterna) {
+          errores.push({
+            fila: i + 2,
+            motivo: "Referencia interna vacía",
+            data: row
+          });
+          continue;
+        }
+
+        // ❌ duplicada en el EXCEL
+        if (refsVistas.has(refInterna)) {
+          errores.push({
+            fila: i + 2,
+            motivo: "Referencia duplicada en el archivo",
+            refInterna
+          });
+          continue;
+        }
+        refsVistas.add(refInterna);
+
+        // ❌ cantidad inválida
+        if (isNaN(cantidad)) {
+          errores.push({
+            fila: i + 2,
+            motivo: "Cantidad inválida",
+            refInterna,
+            valor: row["Cantidad a la mano"]
+          });
+          continue;
+        }
 
         const existe = await pool.query(
           "SELECT id FROM refacciones WHERE refinterna = $1",
@@ -424,14 +458,14 @@ app.post(
         );
 
         if (existe.rows.length > 0) {
-          // 🔁 SOLO ACTUALIZA CANTIDAD
+          // 🔁 actualiza
           await pool.query(
             "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
             [cantidad, refInterna]
           );
           actualizados++;
         } else {
-          // 🆕 CREA SI NO EXISTE
+          // 🆕 inserta
           await pool.query(
             `
             INSERT INTO refacciones (
@@ -457,7 +491,8 @@ app.post(
       res.json({
         ok: true,
         insertados,
-        actualizados
+        actualizados,
+        errores
       });
 
     } catch (error) {
@@ -466,6 +501,8 @@ app.post(
     }
   }
 );
+
+
 
 import importRoutes from "./routes/import.routes";
 
