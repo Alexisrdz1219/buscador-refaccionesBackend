@@ -607,18 +607,25 @@ app.get("/opciones/maquinaesp", (_req, res) => {
 });
 
 app.get("/refacciones-filtradas", async (req, res) => {
-  const { marca, modelo, maquina } = req.query;
+  const { categoriaprin, maquinamod, maquinaesp } = req.query;
 
-  const result = await pool.query(
-    `
-    SELECT * FROM refacciones
-    WHERE categoriaprin = $1
-      AND maquinamod = $2
-      AND maquinaesp = $3
-    `,
-    [marca, modelo, maquina]
-  );
+  try {
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM refacciones
+      WHERE categoriaprin = $1
+        AND maquinamod = $2
+        AND maquinaesp = $3
+      `,
+      [categoriaprin, maquinamod, maquinaesp]
+    );
 
-  res.json(result.rows);
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false });
+  }
 });
+
 
