@@ -414,7 +414,7 @@ app.post(
       for (const row of rows) {
 
         const refInterna = row["Referencia interna"];
-        const cantidad = Number(row["Cantidad a la mano"]);
+        const cantidad = limpiarCantidad(row["Cantidad a la mano"]);
 
         if (!refInterna || isNaN(cantidad)) continue;
 
@@ -470,3 +470,12 @@ app.post(
 import importRoutes from "./routes/import.routes";
 
 // app.use("/api", importRoutes);
+// function limpiarCantidad(valor: any): number {
+//   if (valor === null || valor === undefined) return 0;
+
+//   const num = Number(valor);
+
+//   if (isNaN(num)) return 0;
+
+//   return Math.floor(num); // 🔥 0.5 → 0 | 3.9 → 3
+// }
