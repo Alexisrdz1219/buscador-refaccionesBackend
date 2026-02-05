@@ -550,3 +550,59 @@ import importRoutes from "./routes/import.routes";
 
 //   return Math.floor(num); // 🔥 0.5 → 0 | 3.9 → 3
 // }
+
+app.get("/opciones/categorias", (_req, res) => {
+  const categorias = [
+    "Maquinas",
+    "Moldes",
+    "Compresores",
+    "Red de Agua",
+    "Subestacion",
+    "Transportes",
+    "Equipos Auxiliares",
+    "Servicios"
+  ];
+
+  res.json(categorias.map(c => ({ valor: c })));
+});
+
+
+app.get("/opciones/maquinamod", (_req, res) => {
+  const maquinas = [
+    "AOKI",
+    "ASB",
+    "NISSEI",
+    "SUMITOMO",
+    "ENLAINADORA",
+    "REVOLVEDORA",
+    "MOLINO",
+    "OTROS"
+  ];
+
+  res.json(maquinas.map(m => ({ valor: m })));
+});
+
+
+app.get("/opciones/maquinaesp", (_req, res) => {
+  const especificas = [
+    "AOKI SBIII-500-150",
+    "ASB 150DP",
+    "ASB 150 DP STD",
+    "ASB 12M",
+    "NISSEI FS 160",
+    "NISSEI FN3000",
+    "NISSEI FNX280",
+    "NISSEI FNX220",
+    "SUMITOMO SYSTEC 280",
+    "SUMITOMO SYSTEC 580",
+    "SUMITOMO INTELECT2 S 220",
+    "AUTING SMN-03",
+    "AUTING LSM-025",
+    "XHS-50KGS",
+    "PAGANI",
+    "RAPID"
+  ];
+
+  res.json(especificas.map(e => ({ valor: e })));
+});
+
