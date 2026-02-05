@@ -398,3 +398,71 @@ app.get("/refacciones/:id", async (req, res) => {
     res.status(500).json({ ok: false });
   }
 });
+
+app.post(
+  "/importar-odoo",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const workbook = XLSX.read(req.file!.buffer);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+
+      let insertados = 0;
+      let actualizados = 0;
+
+      for (const row of rows) {
+
+        const refInterna = row["Referencia interna"];
+        const cantidad = Number(row["Cantidad a la mano"]);
+
+        if (!refInterna || isNaN(cantidad)) continue;
+
+        const existe = await pool.query(
+          "SELECT id FROM refacciones WHERE refinterna = $1",
+          [refInterna]
+        );
+
+        if (existe.rows.length > 0) {
+          // 🔁 SOLO ACTUALIZA CANTIDAD
+          await pool.query(
+            "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
+            [cantidad, refInterna]
+          );
+          actualizados++;
+        } else {
+          // 🆕 CREA SI NO EXISTE
+          await pool.query(
+            `
+            INSERT INTO refacciones (
+              nombreprod,
+              refinterna,
+              cantidad,
+              unidad,
+              palclave
+            ) VALUES ($1, $2, $3, $4, $5)
+            `,
+            [
+              row["Nombre"] || "SIN NOMBRE",
+              refInterna,
+              cantidad,
+              row["Unidad de medida"] || "",
+              row["Etiquetas de la plantilla del producto"] || ""
+            ]
+          );
+          insertados++;
+        }
+      }
+
+      res.json({
+        ok: true,
+        insertados,
+        actualizados
+      });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ ok: false });
+    }
+  }
+);
