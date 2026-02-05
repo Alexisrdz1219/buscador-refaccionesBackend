@@ -466,3 +466,7 @@ app.post(
     }
   }
 );
+
+import importRoutes from "./routes/import.routes";
+
+app.use("/api", importRoutes);
