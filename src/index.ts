@@ -628,4 +628,23 @@ app.get("/refacciones-filtradas", async (req, res) => {
   }
 });
 
+app.post("/refacciones/:id/compatibles", async (req, res) => {
+  const refaccionId = req.params.id;
+  const maquinas = req.body.maquinas; // array de ids
+
+  await pool.query(
+    "DELETE FROM refaccion_maquina WHERE refaccion_id = $1",
+    [refaccionId]
+  );
+
+  for (const mId of maquinas) {
+    await pool.query(
+      "INSERT INTO refaccion_maquina (refaccion_id, maquina_id) VALUES ($1, $2)",
+      [refaccionId, mId]
+    );
+  }
+
+  res.json({ ok: true });
+});
+
 
