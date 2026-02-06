@@ -155,8 +155,7 @@ app.put("/refacciones/:id", async (req, res) => {
       unidad,
       ubicacion,
       observacion,
-      imagen,
-      compatibilidad
+      imagen
     } = req.body;
 
     await pool.query(
@@ -175,8 +174,7 @@ app.put("/refacciones/:id", async (req, res) => {
         ubicacion=$11,
         observacion=$12,
         imagen=$13,
-        compatibilidad = $14
-WHERE id = $15
+WHERE id = $14
       `,
       [
         nombreprod,
@@ -192,7 +190,6 @@ WHERE id = $15
         ubicacion,
         observacion,
         imagen,
-        JSON.stringify(compatibilidad || []),
         id
       ]
     );
@@ -631,23 +628,80 @@ app.get("/refacciones-filtradas", async (req, res) => {
   }
 });
 
+
+
+
 app.post("/refacciones/:id/compatibles", async (req, res) => {
   const refaccionId = req.params.id;
-  const maquinas = req.body.maquinas; // array de ids
+  const maquinas: number[] = req.body.maquinas || [];
 
-  await pool.query(
-    "DELETE FROM refaccion_maquina WHERE refaccion_id = $1",
-    [refaccionId]
-  );
-
-  for (const mId of maquinas) {
+  try {
     await pool.query(
-      "INSERT INTO refaccion_maquina (refaccion_id, maquina_id) VALUES ($1, $2)",
-      [refaccionId, mId]
+      "DELETE FROM refaccion_maquina WHERE refaccion_id = $1",
+      [refaccionId]
     );
-  }
 
-  res.json({ ok: true });
+    for (const maquinaId of maquinas) {
+      await pool.query(
+        "INSERT INTO refaccion_maquina (refaccion_id, maquina_id) VALUES ($1, $2)",
+        [refaccionId, maquinaId]
+      );
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false });
+  }
 });
 
+
+// ---
+app.get("/refacciones/:id/compatibles", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT maquina_id FROM refaccion_maquina WHERE refaccion_id = $1",
+      [id]
+    );
+
+    const maquinas = result.rows.map(r => r.maquina_id);
+    res.json({ ok: true, maquinas });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false });
+  }
+});
+
+
+// --- Modificación opcional en GET /refacciones/:id para incluir  ---
+app.get("/refacciones/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      "SELECT * FROM refacciones WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false });
+    }
+
+    const refaccion = result.rows[0];
+
+    // Obtenemos  para incluirla directamente
+    const comp = await pool.query(
+      "SELECT maquina_id FROM refaccion_maquina WHERE refaccion_id = $1",
+      [id]
+    );
+    // refaccion. = comp.rows.map(r => r.maquina_id);
+
+    res.json(refaccion);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false });
+  }
+});
 
