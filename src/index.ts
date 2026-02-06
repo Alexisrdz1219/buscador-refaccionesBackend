@@ -140,66 +140,41 @@ app.post(
 );
 
 app.put("/refacciones/:id", async (req, res) => {
+  const { id } = req.params;
+  const { compatibilidad, ...campos } = req.body;
+
   try {
-    const { id } = req.params;
-    const {
-      nombreprod,
-      categoriaprin,
-      maquinamod,
-      maquinaesp,
-      tipoprod,
-      modelo,
-      refinterna,
-      palclave,
-      cantidad,
-      unidad,
-      ubicacion,
-      observacion,
-      imagen
-    } = req.body;
+    // 🔹 actualizar refacción
+    const keys = Object.keys(campos);
+    const values = Object.values(campos);
+
+    const set = keys.map((k,i)=>`${k}=$${i+1}`).join(",");
 
     await pool.query(
-      `
-      UPDATE refacciones SET
-        nombreprod=$1,
-        categoriaprin=$2,
-        maquinamod=$3,
-        maquinaesp=$4,
-        tipoprod=$5,
-        modelo=$6,
-        refinterna=$7,
-        palclave=$8,
-        cantidad=$9,
-        unidad=$10,
-        ubicacion=$11,
-        observacion=$12,
-        imagen=$13
-      WHERE id = $14
-      `,
-      [
-        nombreprod,
-        categoriaprin,
-        maquinamod,
-        maquinaesp,
-        tipoprod,
-        modelo,
-        refinterna,
-        palclave,
-        cantidad,
-        unidad,
-        ubicacion,
-        observacion,
-        imagen,
-        id
-      ]
+      `UPDATE refacciones SET ${set} WHERE id=$${keys.length+1}`,
+      [...values, id]
     );
 
-    res.json({ ok: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false });
+    // 🔹 reset compatibilidad
+    await pool.query(
+      "DELETE FROM refaccion_maquina WHERE refaccion_id=$1",
+      [id]
+    );
+
+    // 🔹 insertar nuevas
+    for (const mid of compatibilidad || []) {
+      await pool.query(
+        "INSERT INTO refaccion_maquina VALUES ($1,$2)",
+        [id, mid]
+      );
+    }
+
+    res.json({ ok:true });
+  } catch (e) {
+    res.status(500).json({ ok:false, error:(e as Error).message });
   }
 });
+
 
 
 
@@ -658,21 +633,22 @@ app.post("/refacciones/:id/compatibles", async (req, res) => {
 
 // ---
 app.get("/refacciones/:id/compatibles", async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const result = await pool.query(
-      "SELECT maquina_id FROM refaccion_maquina WHERE refaccion_id = $1",
+    const { id } = req.params;
+
+    const r = await pool.query(
+      "SELECT maquina_id FROM refaccion_maquina WHERE refaccion_id=$1",
       [id]
     );
 
-    const maquinas = result.rows.map(r => r.maquina_id);
-    res.json(maquinas);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false });
+    res.json({
+      maquinas: r.rows.map(x => x.maquina_id)
+    });
+  } catch (e) {
+    res.status(500).json({ ok:false });
   }
 });
+
 
 
 // --- Modificación opcional en GET /refacciones/:id para incluir  ---
@@ -707,15 +683,14 @@ app.get("/refacciones/:id", async (req, res) => {
 
 app.get("/maquinas", async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT id, maquinamod, maquinaesp, nombre
+    const r = await pool.query(`
+      SELECT id, maquinamod, maquinaesp
       FROM maquinas
       ORDER BY maquinamod
     `);
-
-    res.json(rows);
+    res.json(r.rows);
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ ok: false });
+    res.status(500).json({ ok:false, error:(e as Error).message });
   }
 });
+
