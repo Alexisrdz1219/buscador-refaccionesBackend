@@ -705,3 +705,17 @@ app.get("/refacciones/:id", async (req, res) => {
   }
 });
 
+app.get("/maquinas", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, maquinamod, maquinaesp, nombre
+      FROM maquinas
+      ORDER BY maquinamod
+    `);
+
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false });
+  }
+});
