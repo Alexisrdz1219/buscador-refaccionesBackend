@@ -173,8 +173,8 @@ app.put("/refacciones/:id", async (req, res) => {
         unidad=$10,
         ubicacion=$11,
         observacion=$12,
-        imagen=$13,
-WHERE id = $14
+        imagen=$13
+      WHERE id = $14
       `,
       [
         nombreprod,
@@ -667,7 +667,7 @@ app.get("/refacciones/:id/compatibles", async (req, res) => {
     );
 
     const maquinas = result.rows.map(r => r.maquina_id);
-    res.json({ ok: true, maquinas });
+    res.json(maquinas);
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false });
