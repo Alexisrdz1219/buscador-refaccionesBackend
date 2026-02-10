@@ -4,6 +4,14 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 import multer from "multer";
 import XLSX from "xlsx";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 
 
 dotenv.config();
@@ -144,35 +152,49 @@ app.put("/refacciones/:id", async (req, res) => {
   const { compatibilidad, ...campos } = req.body;
 
   try {
+
+    // 📸 si viene imagen, subirla
+      if (req.file) {
+        const uploadImg = await cloudinary.uploader.upload(
+          `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+          { folder: "refacciones" }
+        );
+
+        campos.imagen = uploadImg.secure_url;
+      }
     // 🔹 actualizar refacción
     const keys = Object.keys(campos);
     const values = Object.values(campos);
 
-    const set = keys.map((k,i)=>`${k}=$${i+1}`).join(",");
+    if (keys.length > 0) {
+        const set = keys.map((k, i) => `${k}=$${i + 1}`).join(",");
+        await pool.query(
+          `UPDATE refacciones SET ${set} WHERE id=$${keys.length + 1}`,
+          [...values, id]
+        );
+      }
 
-    await pool.query(
-      `UPDATE refacciones SET ${set} WHERE id=$${keys.length+1}`,
-      [...values, id]
-    );
+    
 
     // 🔹 reset compatibilidad
     await pool.query(
-      "DELETE FROM refaccion_maquina WHERE refaccion_id=$1",
-      [id]
-    );
+        "DELETE FROM refaccion_maquina WHERE refaccion_id=$1",
+        [id]
+      );
 
     // 🔹 insertar nuevas
-    for (const mid of compatibilidad || []) {
-      await pool.query(
-        "INSERT INTO refaccion_maquina VALUES ($1,$2)",
-        [id, mid]
-      );
-    }
+    for (const mid of JSON.parse(compatibilidad || "[]")) {
+        await pool.query(
+          "INSERT INTO refaccion_maquina VALUES ($1,$2)",
+          [id, mid]
+        );
+      }
 
-    res.json({ ok:true });
-  } catch (e) {
-    res.status(500).json({ ok:false, error:(e as Error).message });
-  }
+    res.json({ ok: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ ok: false });
+    }
 });
 
 
@@ -387,27 +409,6 @@ app.get("/refacciones-paginadas", async (req, res) => {
   }
 });
 
-
-// app.get("/refacciones/:id", async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const result = await pool.query(
-//       "SELECT * FROM refacciones WHERE id = $1",
-//       [id]
-//     );
-
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ ok: false });
-//     }
-
-//     res.json(result.rows[0]);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ ok: false });
-//   }
-// });
-
 app.post(
   "/importar-odoo",
   upload.single("file"),
@@ -512,19 +513,6 @@ app.post(
 );
 
 
-
-import importRoutes from "./routes/import.routes";
-
-// app.use("/api", importRoutes);
-// function limpiarCantidad(valor: any): number {
-//   if (valor === null || valor === undefined) return 0;
-
-//   const num = Number(valor);
-
-//   if (isNaN(num)) return 0;
-
-//   return Math.floor(num); // 🔥 0.5 → 0 | 3.9 → 3
-// }
 
 app.get("/opciones/categorias", (_req, res) => {
   const categorias = [
