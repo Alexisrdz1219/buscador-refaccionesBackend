@@ -772,3 +772,20 @@ app.get("/opciones/nummaquina", async (req, res) => {
   res.json(r.rows);
 });
 
+app.get("/refacciones-por-maquina/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { rows } = await pool.query(`
+      SELECT r.*
+      FROM refacciones r
+      JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
+      WHERE rm.maquina_id = $1
+    `, [id]);
+
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json([]);
+  }
+});
