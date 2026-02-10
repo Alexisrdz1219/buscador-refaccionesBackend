@@ -220,6 +220,11 @@ app.put("/refacciones/:id",upload.single("imagen"),async (req, res) => {
 
       // 🔹 campos normales
       const { compatibilidad: _c, ...campos } = body;
+const nummaquina = req.body.nummaquina || null;
+
+if (nummaquina !== null) {
+  campos.nummaquina = nummaquina;
+}
 
       let imageUrl = null;
       // 🔹 si hay imagen
@@ -758,5 +763,12 @@ app.get("/maquinas", async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok:false, error:(e as Error).message });
   }
+});
+
+app.get("/opciones/nummaquina", async (req, res) => {
+  const r = await pool.query(
+    "SELECT valor FROM opciones_nummaquina ORDER BY valor"
+  );
+  res.json(r.rows);
 });
 
