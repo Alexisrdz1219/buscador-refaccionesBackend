@@ -5,12 +5,14 @@ import dotenv from "dotenv";
 import multer from "multer";
 import XLSX from "xlsx";
 import { v2 as cloudinary } from "cloudinary";
+import streamifier from "streamifier";
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!
 });
+
 
 
 
@@ -199,14 +201,13 @@ app.post(
 //       res.status(500).json({ ok: false });
 //     }
 // });
-app.put(
-  "/refacciones/:id",
-  upload.single("imagen"),
-  async (req, res) => {
+app.put("/refacciones/:id",upload.single("imagen"),async (req, res) => {
 
     console.log("BODY:", req.body);
-console.log("FILE:", req.file);
+    console.log("FILE:", req.file);
+    
 
+    
     try {
       const { id } = req.params;
       const body = req.body || {};
@@ -220,11 +221,25 @@ console.log("FILE:", req.file);
       // 🔹 campos normales
       const { compatibilidad: _c, ...campos } = body;
 
+      let imageUrl = null;
       // 🔹 si hay imagen
       if (req.file) {
-        // aquí luego subiremos a Cloudinary
-        campos.imagen = "URL_DE_LA_IMAGEN";
-      }
+  const uploadFromBuffer = () =>
+    new Promise<string>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "refacciones" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result!.secure_url);
+        }
+      );
+
+      streamifier.createReadStream(req.file!.buffer).pipe(stream);
+    });
+
+  imageUrl = await uploadFromBuffer();
+  campos.imagen = imageUrl;
+}
 
       // 🔹 actualizar refacción
       const keys = Object.keys(campos);
