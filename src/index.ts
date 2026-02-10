@@ -147,55 +147,118 @@ app.post(
   }
 );
 
-app.put("/refacciones/:id", async (req, res) => {
-  const { id } = req.params;
-  const { compatibilidad, ...campos } = req.body;
+// app.put("/refacciones/:id",upload.single("imagen"), async (req, res) => {
+//   const { id } = req.params;
+//   const body = req.body || {};
+// const { compatibilidad = [], ...campos } = body;
 
-  try {
+// console.log("BODY:", body);
+//     console.log("FILE:", req.file);
+//   try {
 
-    // 📸 si viene imagen, subirla
-      if (req.file) {
-        const uploadImg = await cloudinary.uploader.upload(
-          `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
-          { folder: "refacciones" }
-        );
+//     // 📸 si viene imagen, subirla
+//       if (req.file) {
+//         const uploadImg = await cloudinary.uploader.upload(
+//           `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+//           { folder: "refacciones" }
+//         );
 
-        campos.imagen = uploadImg.secure_url;
+//         campos.imagen = uploadImg.secure_url;
+//       }
+//     // 🔹 actualizar refacción
+//     const keys = Object.keys(campos);
+//     const values = Object.values(campos);
+
+//     if (keys.length > 0) {
+//         const set = keys.map((k, i) => `${k}=$${i + 1}`).join(",");
+//         await pool.query(
+//           `UPDATE refacciones SET ${set} WHERE id=$${keys.length + 1}`,
+//           [...values, id]
+//         );
+//       }
+
+    
+
+//     // 🔹 reset compatibilidad
+//     await pool.query(
+//         "DELETE FROM refaccion_maquina WHERE refaccion_id=$1",
+//         [id]
+//       );
+
+//     // 🔹 insertar nuevas
+//     for (const mid of JSON.parse(compatibilidad || "[]")) {
+//         await pool.query(
+//           "INSERT INTO refaccion_maquina VALUES ($1,$2)",
+//           [id, mid]
+//         );
+//       }
+
+//     res.json({ ok: true });
+//     } catch (e) {
+//       console.error(e);
+//       res.status(500).json({ ok: false });
+//     }
+// });
+app.put(
+  "/refacciones/:id",
+  upload.single("imagen"),
+  async (req, res) => {
+
+    console.log("BODY:", req.body);
+console.log("FILE:", req.file);
+
+    try {
+      const { id } = req.params;
+      const body = req.body || {};
+
+      // 🔹 compatibilidad viene como STRING
+      let compatibilidad: number[] = [];
+      if (body.compatibilidad) {
+        compatibilidad = JSON.parse(body.compatibilidad);
       }
-    // 🔹 actualizar refacción
-    const keys = Object.keys(campos);
-    const values = Object.values(campos);
 
-    if (keys.length > 0) {
+      // 🔹 campos normales
+      const { compatibilidad: _c, ...campos } = body;
+
+      // 🔹 si hay imagen
+      if (req.file) {
+        // aquí luego subiremos a Cloudinary
+        campos.imagen = "URL_DE_LA_IMAGEN";
+      }
+
+      // 🔹 actualizar refacción
+      const keys = Object.keys(campos);
+      const values = Object.values(campos);
+
+      if (keys.length > 0) {
         const set = keys.map((k, i) => `${k}=$${i + 1}`).join(",");
+
         await pool.query(
           `UPDATE refacciones SET ${set} WHERE id=$${keys.length + 1}`,
           [...values, id]
         );
       }
 
-    
-
-    // 🔹 reset compatibilidad
-    await pool.query(
+      // 🔹 actualizar compatibilidad
+      await pool.query(
         "DELETE FROM refaccion_maquina WHERE refaccion_id=$1",
         [id]
       );
 
-    // 🔹 insertar nuevas
-    for (const mid of JSON.parse(compatibilidad || "[]")) {
+      for (const mid of compatibilidad) {
         await pool.query(
-          "INSERT INTO refaccion_maquina VALUES ($1,$2)",
+          "INSERT INTO refaccion_maquina (refaccion_id, maquina_id) VALUES ($1,$2)",
           [id, mid]
         );
       }
 
-    res.json({ ok: true });
+      res.json({ ok: true });
     } catch (e) {
       console.error(e);
       res.status(500).json({ ok: false });
     }
-});
+  }
+);
 
 
 
