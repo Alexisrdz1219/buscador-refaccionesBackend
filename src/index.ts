@@ -789,3 +789,22 @@ app.get("/refacciones-por-maquina/:id", async (req, res) => {
     res.status(500).json([]);
   }
 });
+
+app.get("/refacciones-por-maquinamod", async (req, res) => {
+  try {
+    const { maquinamod } = req.query;
+
+    const { rows } = await pool.query(`
+      SELECT r.*
+      FROM refacciones r
+      JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
+      JOIN maquinas m ON m.id = rm.maquina_id
+      WHERE m.maquinamod = $1
+    `, [maquinamod]);
+
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json([]);
+  }
+});
