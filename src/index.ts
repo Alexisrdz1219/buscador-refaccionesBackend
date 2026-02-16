@@ -387,27 +387,32 @@ app.post(
 
           // 1️⃣ Obtener palabras actuales
   const actual = await pool.query(
-    "SELECT palclave FROM refacciones WHERE refinterna = $1",
-    [data.refInterna]
-  );
+  "SELECT palclave FROM refacciones WHERE refinterna = $1",
+  [data.refInterna]
+);
 
   const palActual = actual.rows[0]?.palclave || "";
-  const palNueva = data.palClave || "";
+const palNuevaRaw = data.palClave || "";
 
-  // 2️⃣ Convertir a arrays
-  const arrActual = palActual.split(",").map((p: string) => p.trim().toLowerCase()).filter(Boolean);
-  const arrNueva = palNueva.split(",").map((p: string) => p.trim().toLowerCase()).filter(Boolean);
+function procesarPalabras(texto: string) {
+  return texto
+    .replace(/"/g, "")              // quitar comillas
+    .replace(/;/g, ",")             // convertir ; en ,
+    .split(",")                     // separar por coma
+    .map(p => p.trim().toLowerCase())
+    .filter(Boolean);
+}
 
-  // 3️⃣ Unir y quitar duplicados
+  const arrActual = procesarPalabras(palActual);
+const arrNueva = procesarPalabras(palNuevaRaw);
+
   const merged = [...new Set([...arrActual, ...arrNueva])];
 
-  const palFinal = merged.join(", ");
+const palFinal = merged.join(", ");
 
-
-  console.log("Ref:", data.refInterna);
-console.log("Palabras actuales:", palActual);
-console.log("Palabras nuevas:", palNueva);
-console.log("Palabras finales:", palFinal);
+ console.log("Actual:", arrActual);
+console.log("Excel:", arrNueva);
+console.log("Final:", merged);
 
           await pool.query(
             "UPDATE refacciones SET cantidad = $1, palclave = $2 WHERE refinterna = $3",
