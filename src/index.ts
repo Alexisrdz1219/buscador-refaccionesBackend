@@ -354,7 +354,7 @@ function limpiarCantidad(valor: any): number {
 }
 
 app.post(
-  "/importar-excel-odoo",
+  "/importar-odoo",
   upload.single("file"),
   async (req, res) => {
     try {
@@ -519,110 +519,110 @@ app.get("/refacciones-paginadas", async (req, res) => {
   }
 });
 
-app.post(
-  "/importar-odoo",
-  upload.single("file"),
-  async (req, res) => {
-    try {
-      const workbook = XLSX.read(req.file!.buffer);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+// app.post(
+//   "/importar-odoo",
+//   upload.single("file"),
+//   async (req, res) => {
+//     try {
+//       const workbook = XLSX.read(req.file!.buffer);
+//       const sheet = workbook.Sheets[workbook.SheetNames[0]];
+//       const rows: any[] = XLSX.utils.sheet_to_json(sheet);
 
-      let insertados = 0;
-      let actualizados = 0;
+//       let insertados = 0;
+//       let actualizados = 0;
 
-      const errores: any[] = [];
-      const refsVistas = new Set<string>();
+//       const errores: any[] = [];
+//       const refsVistas = new Set<string>();
 
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
+//       for (let i = 0; i < rows.length; i++) {
+//         const row = rows[i];
 
-        const refInterna = row["Referencia interna"]?.toString().trim();
-        const cantidad = limpiarCantidad(row["Cantidad a la mano"]);
+//         const refInterna = row["Referencia interna"]?.toString().trim();
+//         const cantidad = limpiarCantidad(row["Cantidad a la mano"]);
 
-        // ❌ referencia vacía
-        if (!refInterna) {
-          errores.push({
-            fila: i + 2,
-            motivo: "Referencia interna vacía",
-            data: row
-          });
-          continue;
-        }
+//         // ❌ referencia vacía
+//         if (!refInterna) {
+//           errores.push({
+//             fila: i + 2,
+//             motivo: "Referencia interna vacía",
+//             data: row
+//           });
+//           continue;
+//         }
 
-        // ❌ duplicada en el EXCEL
-        if (refsVistas.has(refInterna)) {
-          errores.push({
-            fila: i + 2,
-            motivo: "Referencia duplicada en el archivo",
-            refInterna
-          });
-          continue;
-        }
-        refsVistas.add(refInterna);
+//         // ❌ duplicada en el EXCEL
+//         if (refsVistas.has(refInterna)) {
+//           errores.push({
+//             fila: i + 2,
+//             motivo: "Referencia duplicada en el archivo",
+//             refInterna
+//           });
+//           continue;
+//         }
+//         refsVistas.add(refInterna);
 
-        // ❌ cantidad inválida
-        if (isNaN(cantidad)) {
-          errores.push({
-            fila: i + 2,
-            motivo: "Cantidad inválida",
-            refInterna,
-            valor: row["Cantidad a la mano"]
-          });
-          continue;
-        }
+//         // ❌ cantidad inválida
+//         if (isNaN(cantidad)) {
+//           errores.push({
+//             fila: i + 2,
+//             motivo: "Cantidad inválida",
+//             refInterna,
+//             valor: row["Cantidad a la mano"]
+//           });
+//           continue;
+//         }
 
-        const existe = await pool.query(
-          "SELECT id FROM refacciones WHERE refinterna = $1",
-          [refInterna]
-        );
+//         const existe = await pool.query(
+//           "SELECT id FROM refacciones WHERE refinterna = $1",
+//           [refInterna]
+//         );
 
-        if (existe.rows.length > 0) {
-          // 🔁 actualiza
-          await pool.query(
-            "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
-            [cantidad, refInterna]
-          );
-          actualizados++;
-        } else {
-          // 🆕 inserta
-          await pool.query(
-            `
-            INSERT INTO refacciones (
-              nombreprod,
-              refinterna,
-              cantidad,
-              unidad,
-              palclave
-            ) VALUES ($1, $2, $3, $4, $5)
-            `,
-            [
-              row["Nombre"] || "SIN NOMBRE",
-              refInterna,
-              cantidad,
-              row["Unidad de medida"] || "",
-              row["Etiquetas de la plantilla del producto"] || ""
-            ]
-          );
-          insertados++;
-          console.log("Insertando nueva HOLAAAA");
+//         if (existe.rows.length > 0) {
+//           // 🔁 actualiza
+//           await pool.query(
+//             "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
+//             [cantidad, refInterna]
+//           );
+//           actualizados++;
+//         } else {
+//           // 🆕 inserta
+//           await pool.query(
+//             `
+//             INSERT INTO refacciones (
+//               nombreprod,
+//               refinterna,
+//               cantidad,
+//               unidad,
+//               palclave
+//             ) VALUES ($1, $2, $3, $4, $5)
+//             `,
+//             [
+//               row["Nombre"] || "SIN NOMBRE",
+//               refInterna,
+//               cantidad,
+//               row["Unidad de medida"] || "",
+//               row["Etiquetas de la plantilla del producto"] || ""
+//             ]
+//           );
+//           insertados++;
+//           console.log("Insertando nueva HOLAAAA");
 
-        }
-      }
+//         }
+//       }
 
-      res.json({
-        ok: true,
-        insertados,
-        actualizados,
-        errores
-      });
+//       res.json({
+//         ok: true,
+//         insertados,
+//         actualizados,
+//         errores
+//       });
 
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ ok: false });
-    }
-  }
-);
+//     } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ ok: false });
+//     }
+//   }
+// );
 
 
 
