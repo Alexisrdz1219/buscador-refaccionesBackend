@@ -790,6 +790,24 @@ app.get("/refacciones-por-maquina/:id", async (req, res) => {
   }
 });
 
+// app.get("/refacciones-por-maquinamod", async (req, res) => {
+//   try {
+//     const { maquinamod } = req.query;
+
+//     const { rows } = await pool.query(`
+//       SELECT r.*
+//       FROM refacciones r
+//       JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
+//       JOIN maquinas m ON m.id = rm.maquina_id
+//       WHERE m.maquinamod = $1
+//     `, [maquinamod]);
+
+//     res.json(rows);
+//   } catch (e) {
+//     console.error(e);
+//     res.status(500).json([]);
+//   }
+// });
 app.get("/refacciones-por-maquinamod", async (req, res) => {
   try {
     const { maquinamod } = req.query;
@@ -799,8 +817,10 @@ app.get("/refacciones-por-maquinamod", async (req, res) => {
       FROM refacciones r
       JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
       JOIN maquinas m ON m.id = rm.maquina_id
-      WHERE m.maquinamod = $1
+      WHERE LOWER(TRIM(m.maquinamod)) = LOWER(TRIM($1))
     `, [maquinamod]);
+
+    console.log("RESULTADOS:", rows.length);
 
     res.json(rows);
   } catch (e) {
