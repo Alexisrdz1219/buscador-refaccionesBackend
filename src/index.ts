@@ -813,7 +813,7 @@ app.get("/refacciones-por-maquinamod", async (req, res) => {
     const { maquinamod } = req.query;
 
     const { rows } = await pool.query(`
-      SELECT r.*
+      SELECT DISTINCT r.*
       FROM refacciones r
       JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
       JOIN maquinas m ON m.id = rm.maquina_id
