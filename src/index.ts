@@ -385,9 +385,27 @@ app.post(
 
         if (existe.rows.length > 0) {
 
+          // 1️⃣ Obtener palabras actuales
+  const actual = await pool.query(
+    "SELECT palclave FROM refacciones WHERE refinterna = $1",
+    [data.refInterna]
+  );
+
+  const palActual = actual.rows[0]?.palclave || "";
+  const palNueva = data.palClave || "";
+
+  // 2️⃣ Convertir a arrays
+  const arrActual = palActual.split(",").map((p: string) => p.trim().toLowerCase()).filter(Boolean);
+  const arrNueva = palNueva.split(",").map((p: string) => p.trim().toLowerCase()).filter(Boolean);
+
+  // 3️⃣ Unir y quitar duplicados
+  const merged = [...new Set([...arrActual, ...arrNueva])];
+
+  const palFinal = merged.join(", ");
+
           await pool.query(
-            "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
-            [limpiarCantidad((data.cantidad)) || 0, data.refInterna]
+            "UPDATE refacciones SET cantidad = $1, palclave = $2 WHERE refinterna = $3",
+            [limpiarCantidad((data.cantidad)) || 0, palFinal, data.refInterna]
           );
           actualizados++;
 
