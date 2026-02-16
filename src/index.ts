@@ -403,6 +403,12 @@ app.post(
 
   const palFinal = merged.join(", ");
 
+
+  console.log("Ref:", data.refInterna);
+console.log("Palabras actuales:", palActual);
+console.log("Palabras nuevas:", palNueva);
+console.log("Palabras finales:", palFinal);
+
           await pool.query(
             "UPDATE refacciones SET cantidad = $1, palclave = $2 WHERE refinterna = $3",
             [limpiarCantidad((data.cantidad)) || 0, palFinal, data.refInterna]
@@ -428,6 +434,9 @@ app.post(
 
           nuevos.push(data);
           insertados++;
+          console.log("Insertando nueva ref:", data.refInterna);
+console.log("Palabras clave:", data.palClave);
+
         }
       }
 
@@ -596,6 +605,8 @@ app.post(
             ]
           );
           insertados++;
+          console.log("Insertando nueva HOLAAAA");
+
         }
       }
 
