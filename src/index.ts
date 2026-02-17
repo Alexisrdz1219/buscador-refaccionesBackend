@@ -55,12 +55,44 @@ app.get("/health", async (_req, res) => {
   }
 });
 //  tabla de refacciones
-app.get("/refacciones", async (_, res) => {
-  const result = await pool.query(
-    "SELECT * FROM refacciones ORDER BY id ASC"
-  );
-  res.json(result.rows);
+// app.get("/refacciones", async (_, res) => {
+//   const result = await pool.query(
+//     "SELECT * FROM refacciones ORDER BY id ASC"
+//   );
+//   res.json(result.rows);
+// });
+app.get("/refacciones", async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+
+  const offset = (page - 1) * limit;
+
+  try {
+    const totalResult = await pool.query(
+      "SELECT COUNT(*) FROM refacciones"
+    );
+
+    const total = parseInt(totalResult.rows[0].count);
+
+    const result = await pool.query(
+      `SELECT * FROM refacciones
+       ORDER BY id DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+
+    res.json({
+      data: result.rows,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener refacciones" });
+  }
 });
+
 
 const sleep = (ms: number) =>
   new Promise(resolve => setTimeout(resolve, ms));
