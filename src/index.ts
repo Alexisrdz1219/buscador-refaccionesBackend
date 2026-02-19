@@ -862,3 +862,74 @@ app.get("/refacciones-por-maquinamod", async (req, res) => {
     res.status(500).json([]);
   }
 });
+
+app.get("/buscar-refacciones", async (req, res) => {
+
+  const {
+    ref,
+    modelo,
+    tipo,
+    unidad,
+    palabras
+  } = req.query;
+
+  let condiciones = [];
+  let valores = [];
+  let contador = 1;
+
+  if (ref) {
+    condiciones.push(`refinterna ILIKE $${contador++}`);
+    valores.push(`%${ref}%`);
+  }
+
+  if (modelo) {
+    condiciones.push(`modelo ILIKE $${contador++}`);
+    valores.push(`%${modelo}%`);
+  }
+
+  if (tipo) {
+    condiciones.push(`tipoprod = $${contador++}`);
+    valores.push(tipo);
+  }
+
+  if (unidad) {
+    condiciones.push(`unidad = $${contador++}`);
+    valores.push(unidad);
+  }
+
+  if (palabras) {
+    condiciones.push(`palclave ILIKE $${contador++}`);
+    valores.push(`%${palabras}%`);
+  }
+
+  const where = condiciones.length
+    ? "WHERE " + condiciones.join(" AND ")
+    : "";
+
+  const result = await pool.query(
+    `SELECT *
+     FROM refacciones
+     ${where}
+     ORDER BY id DESC
+     LIMIT 100`,
+    valores
+  );
+
+  res.json(result.rows);
+});
+
+app.get("/refacciones-metadata", async (req, res) => {
+
+  const tipos = await pool.query(`
+    SELECT DISTINCT tipoprod FROM refacciones WHERE tipoprod IS NOT NULL
+  `);
+
+  const unidades = await pool.query(`
+    SELECT DISTINCT unidad FROM refacciones WHERE unidad IS NOT NULL
+  `);
+
+  res.json({
+    tipos: tipos.rows.map(t => t.tipoprod),
+    unidades: unidades.rows.map(u => u.unidad)
+  });
+});
