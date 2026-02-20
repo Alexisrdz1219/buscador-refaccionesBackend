@@ -656,7 +656,10 @@ app.get("/opciones/maquinamod", (_req, res) => {
     "ENLAINADORA",
     "REVOLVEDORA",
     "MOLINO",
-    "OTROS"
+    "TOLVAS/SECADOR/ACOND.",
+    "DESHUM. CABINA",
+    "TERMORREGULADOR",
+    "CHILLER"
   ];
 
   res.json(maquinas.map(m => ({ valor: m })));
@@ -665,6 +668,7 @@ app.get("/opciones/maquinamod", (_req, res) => {
 
 app.get("/opciones/maquinaesp", (_req, res) => {
   const especificas = [
+    // MAQUINAS
     "AOKI SBIII-500-150",
     "ASB 150DP",
     "ASB 150 DP STD",
@@ -680,7 +684,40 @@ app.get("/opciones/maquinaesp", (_req, res) => {
     "AUTING LSM-025",
     "XHS-50KGS",
     "PAGANI",
-    "RAPID"
+    "RAPID",
+    // TOLVAS, SECADORES
+    "MATSUI HD-200",
+    "MATSUI HD-300",
+    "PIOVAN G35",
+    "TOSHIBA ASB01",
+    "INCYCLE 24K",
+    "SML-150",
+    "INCYCLE 75K",
+    "PIOVAN T200",
+    "PIOVAN TN300",
+    "PIOVAN T200/G45",
+    "PIOVAN TN300/ESP30",
+    // DESHUMIDIFICADORES
+    "MATSUI AMD1400",
+    "MATSUI AMD1400G",
+    "BLUE AIR MSP10",
+    "PIOVAN RPA400",
+    "PIOVAN RPA1200",
+    //TERMOREGULADORES
+    "PIOVAN TH0118F",
+    "PIOVAN TH0118F(BM)",
+    "PIOVAN TH0118F(CC)",
+    "PIOVAN TH05",
+    // CHILLERS
+    "CHILLER PIOVAN MOD. 620",
+    "CHILLER EUROKLIMAT EK-602",
+    "CHILLER FRIGEL RSD 210",
+    "CHILLER FRIGEL RSD 210/24E",
+    "CHILLER PRASAD WECO 13L",
+    "CHILLER FRIGEL RSD 80",
+    "CHILLER FRIGEL RSD 180",
+    "CHILLER PIOVAN MOD. 1420",
+    "CHILLER FRIGEL RCD300"
   ];
 
   res.json(especificas.map(e => ({ valor: e })));
