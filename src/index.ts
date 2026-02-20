@@ -656,7 +656,11 @@ app.get("/opciones/maquinamod", (_req, res) => {
     "ENLAINADORA",
     "REVOLVEDORA",
     "MOLINO",
-    "OTROS"
+    "OTROSSS",
+    "AUTING",
+    "XHS",
+    "PAGANI",
+    "RAPID"
   ];
 
   res.json(maquinas.map(m => ({ valor: m })));
