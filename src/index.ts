@@ -655,7 +655,8 @@ app.get("/opciones/maquinamod", (_req, res) => {
     "SUMITOMO",
     "ENLAINADORA",
     "REVOLVEDORA",
-    "MOLINO"
+    "MOLINO",
+    "OTROS"
   ];
 
   res.json(maquinas.map(m => ({ valor: m })));
