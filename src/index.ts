@@ -630,118 +630,60 @@ app.get("/refacciones-paginadas", async (req, res) => {
 // );
 
 
-// si funciona
-// app.get("/opciones/categorias", (_req, res) => {
-//   const categorias = [
-//     "Maquinas",
-//     "Moldes",
-//     "Compresores",
-//     "Red de Agua",
-//     "Subestacion",
-//     "Transportes",
-//     "Equipos Auxiliares",
-//     "Servicios"
-//   ];
-
-//   res.json(categorias.map(c => ({ valor: c })));
-// });
-
-const catalogo: { [key: string]: { [key: string]: string[] } } = {
-  Maquinas: {
-    AOKI: ["AOKI SBIII-500-150"],
-    ASB: ["ASB 150DP", "ASB 150 DP STD", "ASB 12M"],
-    NISSEI: ["NISSEI FS 160", "NISSEI FN3000", "NISSEI FNX280", "NISSEI FNX220"],
-    SUMITOMO: ["SUMITOMO SYSTEC 280", "SUMITOMO SYSTEC 580", "SUMITOMO INTELECT2 S 220"],
-    ENLAINADORA: [],
-    REVOLVEDORA: [],
-    MOLINO: []
-  },
-
-  Moldes: {
-    "Molde PET": ["Molde PET 28mm", "Molde PET 38mm"],
-    "Molde Tapa": ["Molde Tapa Sport"]
-  },
-
-  Compresores: {
-    ATLAS: ["GA55", "GA75"]
-  },
-
-  "Red de Agua": {},
-  Subestacion: {},
-  Transportes: {},
-  "Equipos Auxiliares": {},
-  Servicios: {}
-};
 
 app.get("/opciones/categorias", (_req, res) => {
-  const categorias = Object.keys(catalogo);
+  const categorias = [
+    "Maquinas",
+    "Moldes",
+    "Compresores",
+    "Red de Agua",
+    "Subestacion",
+    "Transportes",
+    "Equipos Auxiliares",
+    "Servicios"
+  ];
+
   res.json(categorias.map(c => ({ valor: c })));
 });
 
 
-// app.get("/opciones/maquinamod", (_req, res) => {
-//   const maquinas = [
-//     "AOKI",
-//     "ASB",
-//     "NISSEI",
-//     "SUMITOMO",
-//     "ENLAINADORA",
-//     "REVOLVEDORA",
-//     "MOLINO"
-//   ];
+app.get("/opciones/maquinamod", (_req, res) => {
+  const maquinas = [
+    "AOKI",
+    "ASB",
+    "NISSEI",
+    "SUMITOMO",
+    "ENLAINADORA",
+    "REVOLVEDORA",
+    "MOLINO"
+  ];
 
-//   res.json(maquinas.map(m => ({ valor: m })));
-// });
-
-
-// app.get("/opciones/maquinaesp", (_req, res) => {
-//   const especificas = [
-//     "AOKI SBIII-500-150",
-//     "ASB 150DP",
-//     "ASB 150 DP STD",
-//     "ASB 12M",
-//     "NISSEI FS 160",
-//     "NISSEI FN3000",
-//     "NISSEI FNX280",
-//     "NISSEI FNX220",
-//     "SUMITOMO SYSTEC 280",
-//     "SUMITOMO SYSTEC 580",
-//     "SUMITOMO INTELECT2 S 220",
-//     "AUTING SMN-03",
-//     "AUTING LSM-025",
-//     "XHS-50KGS",
-//     "PAGANI",
-//     "RAPID"
-//   ];
-
-//   res.json(especificas.map(e => ({ valor: e })));
-// });
-
-
-app.get("/opciones/:categoria", (req, res) => {
-  const { categoria } = req.params;
-
-  if (!catalogo[categoria]) {
-    return res.json([]);
-  }
-
-  const tipos = Object.keys(catalogo[categoria]);
-
-  res.json(tipos.map(t => ({ valor: t })));
+  res.json(maquinas.map(m => ({ valor: m })));
 });
 
-app.get("/opciones/:categoria/:tipo", (req, res) => {
-  const { categoria, tipo } = req.params;
 
-  if (!catalogo[categoria] || !catalogo[categoria][tipo]) {
-    return res.json([]);
-  }
-
-  const especificas = catalogo[categoria][tipo];
+app.get("/opciones/maquinaesp", (_req, res) => {
+  const especificas = [
+    "AOKI SBIII-500-150",
+    "ASB 150DP",
+    "ASB 150 DP STD",
+    "ASB 12M",
+    "NISSEI FS 160",
+    "NISSEI FN3000",
+    "NISSEI FNX280",
+    "NISSEI FNX220",
+    "SUMITOMO SYSTEC 280",
+    "SUMITOMO SYSTEC 580",
+    "SUMITOMO INTELECT2 S 220",
+    "AUTING SMN-03",
+    "AUTING LSM-025",
+    "XHS-50KGS",
+    "PAGANI",
+    "RAPID"
+  ];
 
   res.json(especificas.map(e => ({ valor: e })));
 });
-
 
 app.get("/refacciones-filtradas", async (req, res) => {
   const { categoriaprin, maquinamod, maquinaesp } = req.query;
