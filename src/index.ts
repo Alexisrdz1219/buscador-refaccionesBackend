@@ -840,7 +840,21 @@ app.get("/maquinas", async (req, res) => {
     const r = await pool.query(`
       SELECT id, categoriaprin, maquinamod, maquinaesp, nombre
       FROM maquinas
-      ORDER BY categoriaprin, maquinamod
+      ORDER BY 
+        CASE categoriaprin
+          WHEN 'ISBM' THEN 1
+          WHEN 'INYECTORA' THEN 2
+          WHEN 'ENLAINADORA' THEN 3
+          WHEN 'REVOLVEDORA' THEN 4
+          WHEN 'MOLINO' THEN 5
+          WHEN 'TOLVAS/SECADOR/ACOND.' THEN 6
+          WHEN 'DESHUMIDIFICADORES' THEN 7
+          WHEN 'TERMOREGULADORES' THEN 8
+          WHEN 'CHILLERS' THEN 9
+          WHEN 'OTROS' THEN 10
+          ELSE 99
+        END,
+        maquinamod
     `);
 
     res.json(r.rows);
