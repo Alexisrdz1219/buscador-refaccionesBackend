@@ -823,14 +823,28 @@ app.get("/refacciones/:id", async (req, res) => {
   }
 });
 
+// app.get("/maquinas", async (req, res) => {
+//   try {
+//     const r = await pool.query(`
+//       SELECT id, maquinamod, maquinaesp
+//       FROM maquinas
+//       ORDER BY maquinamod
+//     `);
+//     res.json(r.rows);
+//   } catch (e) {
+//     res.status(500).json({ ok:false, error:(e as Error).message });
+//   }
+// });
 app.get("/maquinas", async (req, res) => {
   try {
     const r = await pool.query(`
-      SELECT id, maquinamod, maquinaesp
+      SELECT id, categoriaprin, maquinamod, maquinaesp, nombre
       FROM maquinas
-      ORDER BY maquinamod
+      ORDER BY categoriaprin, maquinamod
     `);
+
     res.json(r.rows);
+
   } catch (e) {
     res.status(500).json({ ok:false, error:(e as Error).message });
   }
