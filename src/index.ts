@@ -1175,11 +1175,28 @@ app.post("/usuarios", verificarSesion, permitirRoles("admin"), async (req, res) 
   res.json({ mensaje: "Usuario creado" });
 });
 
-app.get("/me", verificarSesion, (req, res) => {
-  res.json({
-    id: req.usuario?.id,
-    rol: req.usuario?.rol
-  });
+app.get("/me", verificarSesion, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, nombre, rol FROM usuarios WHERE id = $1",
+      [req.usuario?.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const usuario = result.rows[0];
+
+    res.json({
+      id: usuario.id,
+      nombre: usuario.nombre,
+      rol: usuario.rol
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener usuario" });
+  }
 });
 
 app.get("/sesiones", verificarSesion, permitirRoles("admin"), async (req, res) => {
