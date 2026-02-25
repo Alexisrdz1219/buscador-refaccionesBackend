@@ -74,6 +74,28 @@ const mapOdoo: any = {
   "Etiquetas de la plantilla del producto": "palClave"
 };
 
+app.get("/refacciones/con-ubicacion", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM refacciones
+      WHERE ubicacion IS NOT NULL
+      AND TRIM(ubicacion) <> ''
+    `);
+
+    return res.json({
+      ok: true,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error("Error en consulta:", error);
+    return res.status(500).json({
+      ok: false,
+      error: "Error al consultar la base"
+    });
+  }
+});
 
 app.post(
   "/importar-excel",
@@ -1225,25 +1247,3 @@ setInterval(async () => {
   );
 }, 1000 * 60 * 10); // cada 10 minutos
 
-app.get("/refacciones/con-ubicacion", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT *
-      FROM refacciones
-      WHERE ubicacion IS NOT NULL
-      AND TRIM(ubicacion) <> ''
-    `);
-
-    return res.json({
-      ok: true,
-      data: result.rows
-    });
-
-  } catch (error) {
-    console.error("Error en consulta:", error);
-    return res.status(500).json({
-      ok: false,
-      error: "Error al consultar la base"
-    });
-  }
-});
