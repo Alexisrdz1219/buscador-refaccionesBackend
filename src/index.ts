@@ -1234,9 +1234,16 @@ app.get("/refacciones/con-ubicacion", async (req, res) => {
       AND TRIM(ubicacion) <> ''
     `);
 
-    res.json(result.rows);
+    return res.json({
+      ok: true,
+      data: result.rows
+    });
+
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: "Error al obtener refacciones" });
+    console.error("Error en consulta:", error);
+    return res.status(500).json({
+      ok: false,
+      error: "Error al consultar la base"
+    });
   }
 });
