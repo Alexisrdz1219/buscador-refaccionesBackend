@@ -1128,3 +1128,10 @@ console.log("MAQUINA_ID RECIBIDO:", id);
       "DELETE FROM sesiones_activas WHERE expira_en < NOW()"
     );
   }, 1000 * 60 * 10); // cada 10 minutos
+
+  app.get("/audit-logs", async (req, res) => {
+  const logs = await pool.query(
+    "SELECT * FROM audit_logs ORDER BY fecha DESC LIMIT 100"
+  );
+  res.json(logs.rows);
+});
