@@ -166,7 +166,7 @@ import streamifier from "streamifier";
     }
   );
   // Refacciones por id
-  app.put("/refacciones/:id", verificarSesion, upload.single("imagen"), async (req, res) => {
+  app.put("/refacciones/:id",upload.single("imagen"),async (req, res) => {
 
       console.log("BODY:", req.body);
       console.log("FILE:", req.file);
@@ -211,98 +211,18 @@ import streamifier from "streamifier";
     campos.imagen = imageUrl;
   }
 
-  const keys = Object.keys(campos);
-const values = Object.values(campos);
-
-if (keys.length > 0) {
-
-  const client = await pool.connect();
-
-  try {
-
-    await client.query("BEGIN");
-
-    // 1️⃣ Obtener estado anterior
-    const anteriorRes = await client.query(
-      "SELECT * FROM refacciones WHERE id = $1",
-      [id]
-    );
-
-    if (anteriorRes.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "No encontrado" });
-    }
-
-    const anterior = anteriorRes.rows[0];
-
-    // 2️⃣ Construir update dinámico
-    const set = keys.map((k, i) => `${k}=$${i + 1}`).join(",");
-
-    const actualizadoRes = await client.query(
-      `UPDATE refacciones 
-       SET ${set} 
-       WHERE id=$${keys.length + 1}
-       RETURNING *`,
-      [...values, id]
-    );
-
-    const actualizado = actualizadoRes.rows[0];
-
-    // 3️⃣ Detectar cambios reales
-    const cambios: any = {};
-
-    for (const key of keys) {
-      if (anterior[key] !== actualizado[key]) {
-        cambios[key] = {
-          antes: anterior[key],
-          despues: actualizado[key]
-        };
-      }
-    }
-
-    // 4️⃣ Guardar log SOLO si hubo cambios reales
-    if (Object.keys(cambios).length > 0) {
-      await client.query(
-        `INSERT INTO audit_logs 
-         (usuario_id, accion, tabla, registro_id, datos_anteriores, datos_nuevos)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [
-          req.usuario!.id,
-          "UPDATE",
-          "refacciones",
-          id,
-          cambios,
-          actualizado
-        ]
-      );
-    }
-
-    await client.query("COMMIT");
-
-    res.json(actualizado);
-
-  } catch (error) {
-
-    await client.query("ROLLBACK");
-    console.error(error);
-    res.status(500).json({ error: "Error" });
-
-  } finally {
-    client.release();
-  }
-}
         // 🔹 actualizar refacción
-        // const keys = Object.keys(campos);
-        // const values = Object.values(campos);
+        const keys = Object.keys(campos);
+        const values = Object.values(campos);
 
-        // if (keys.length > 0) {
-        //   const set = keys.map((k, i) => `${k}=$${i + 1}`).join(",");
+        if (keys.length > 0) {
+          const set = keys.map((k, i) => `${k}=$${i + 1}`).join(",");
 
-        //   await pool.query(
-        //     `UPDATE refacciones SET ${set} WHERE id=$${keys.length + 1}`,
-        //     [...values, id]
-        //   );
-        // }
+          await pool.query(
+            `UPDATE refacciones SET ${set} WHERE id=$${keys.length + 1}`,
+            [...values, id]
+          );
+        }
 
         // 🔹 actualizar compatibilidad
         await pool.query(
@@ -920,14 +840,6 @@ console.log("MAQUINA_ID RECIBIDO:", id);
 // INICIO DE SESION
 
   import { Request, Response, NextFunction } from "express";
-  
-  declare global {
-    namespace Express {
-      interface Request {
-        usuario?: { id: number; rol: string };
-      }
-    }
-  }
 
   async function verificarSesion( req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
@@ -1128,10 +1040,3 @@ console.log("MAQUINA_ID RECIBIDO:", id);
       "DELETE FROM sesiones_activas WHERE expira_en < NOW()"
     );
   }, 1000 * 60 * 10); // cada 10 minutos
-
-  app.get("/audit-logs", async (req, res) => {
-  const logs = await pool.query(
-    "SELECT * FROM audit_logs ORDER BY fecha DESC LIMIT 100"
-  );
-  res.json(logs.rows);
-});
