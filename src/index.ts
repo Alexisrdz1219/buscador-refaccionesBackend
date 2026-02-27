@@ -1040,3 +1040,24 @@ console.log("MAQUINA_ID RECIBIDO:", id);
       "DELETE FROM sesiones_activas WHERE expira_en < NOW()"
     );
   }, 1000 * 60 * 10); // cada 10 minutos
+
+  // SELECT TIPO FAVORITO
+  app.patch("/refacciones/:id/completar", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `UPDATE refacciones 
+       SET completada = NOT completada 
+       WHERE id = $1 
+       RETURNING *`,
+      [id]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error" });
+  }
+});
