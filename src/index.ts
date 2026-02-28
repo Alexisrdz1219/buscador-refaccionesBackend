@@ -252,10 +252,18 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
   console.log("BODY:", req.body);
   console.log("FILE:", req.file);
 
+  
+
   try {
     const { id } = req.params;
     const body = req.body || {};
 
+    if (body.eliminarImagen === "true") {
+  await pool.query(
+    "UPDATE refacciones SET imagen=NULL WHERE id=$1",
+    [id]
+  );
+}
     // 🔹 compatibilidad viene como STRING
     let compatibilidad: number[] = [];
     if (body.compatibilidad) {
