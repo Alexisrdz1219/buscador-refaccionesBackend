@@ -1203,3 +1203,15 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
     res.status(500).json({ ok: false });
   }
 });
+
+app.put("/refacciones/:id/broadcast", async (req, res) => {
+  const { id } = req.params;
+
+  await pool.query(`
+    UPDATE refacciones
+    SET destacada = NOT destacada
+    WHERE id = $1
+  `, [id]);
+
+  res.json({ ok: true });
+});
