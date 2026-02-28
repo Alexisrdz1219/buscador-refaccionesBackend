@@ -1206,17 +1206,23 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
 
 app.get("/refacciones/destacadas", async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT id, nombreprod, modelo, ubicacion
+    const resultado = await pool.query(`
+      SELECT *
       FROM refacciones
       WHERE destacada = true
       ORDER BY id DESC
     `);
 
-    res.json(rows);
+    console.log("Destacadas encontradas:", resultado.rows.length);
+
+    res.json({ ok: true, data: resultado.rows });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al obtener destacadas" });
+    console.error("ERROR REAL DESTACADAS:", err);
+    res.status(500).json({
+      ok: false,
+      error: (err as Error).message,
+      detail: (err as any).detail
+    });
   }
 });
 
