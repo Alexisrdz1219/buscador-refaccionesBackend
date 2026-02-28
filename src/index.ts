@@ -1204,18 +1204,6 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
   }
 });
 
-app.put("/refacciones/:id/broadcast", async (req, res) => {
-  const { id } = req.params;
-
-  await pool.query(`
-    UPDATE refacciones
-    SET destacada = NOT destacada
-    WHERE id = $1
-  `, [id]);
-
-  res.json({ ok: true });
-});
-
 app.get("/refacciones/destacadas", async (req, res) => {
   try {
     const { rows } = await pool.query(`
@@ -1231,3 +1219,22 @@ app.get("/refacciones/destacadas", async (req, res) => {
     res.status(500).json({ error: "Error al obtener destacadas" });
   }
 });
+
+app.put("/refacciones/:id/broadcast", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query(`
+      UPDATE refacciones
+      SET destacada = NOT destacada
+      WHERE id = $1
+    `, [id]);
+
+    res.json({ ok: true });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false });
+  }
+});
+
