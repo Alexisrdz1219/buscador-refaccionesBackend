@@ -1215,3 +1215,19 @@ app.put("/refacciones/:id/broadcast", async (req, res) => {
 
   res.json({ ok: true });
 });
+
+app.get("/refacciones/destacadas", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, nombreprod, modelo, ubicacion
+      FROM refacciones
+      WHERE destacada = true
+      ORDER BY id DESC
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al obtener destacadas" });
+  }
+});
