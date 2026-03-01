@@ -1205,33 +1205,36 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
 });
 
 
-
+// GET: Obtener solo las que tienen seguimiento (true)
 app.get("/refacciones/destacadas", async (req, res) => {
   try {
-    // IMPORTANTE: Verifica si tu columna es 'destacada' o 'broadcast'
     const result = await pool.query(
-      "SELECT * FROM refacciones WHERE destacada = true" 
+      "SELECT id, nombreprod, modelo, ubicacion FROM refacciones WHERE destacada = true ORDER BY id DESC"
     ); 
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: "Error al cargar" });
+    console.error("Error en GET destacadas:", (err as Error).message);
+    res.status(500).json({ error: "Error al cargar destacadas" });
   }
 });
 
+// PUT: Cambiar el estado (Toggle)
 app.put("/refacciones/:id/broadcast", async (req, res) => {
   const { id } = req.params;
-
   try {
-    await pool.query(`
-      UPDATE refacciones
-      SET destacada = NOT destacada
-      WHERE id = $1
-    `, [id]);
+    // Usamos NOT para invertir el booleano actual
+    const result = await pool.query(
+      "UPDATE refacciones SET destacada = NOT destacada WHERE id = $1 RETURNING destacada",
+      [id]
+    );
 
-    res.json({ ok: true });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, message: "Refacción no encontrada" });
+    }
 
+    res.json({ ok: true, nuevoEstado: result.rows[0].destacada });
   } catch (error) {
-    console.error(error);
+    console.error("Error en PUT broadcast:", (error as Error).message);
     res.status(500).json({ ok: false });
   }
 });
