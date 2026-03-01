@@ -248,6 +248,41 @@ import streamifier from "streamifier";
 //       }
 //     }
 //   );
+
+// GET: Obtener solo las que tienen seguimiento (true)
+app.get("/refacciones/destacadas", async (req, res) => {
+  console.log("--- Intento de carga de destacadas ---");
+  try {
+    // 1. Verificamos si el pool existe
+    if (!pool) {
+      console.error("Error: El pool de conexión no está definido");
+      return res.status(500).json({ ok: false, error: "No hay conexión a DB" });
+    }
+
+    // 2. Ejecutamos la consulta con un nombre de columna que ya vimos que existe
+    const result = await pool.query(
+      'SELECT id, nombreprod, modelo, ubicacion, destacada FROM refacciones WHERE destacada = true'
+    ); 
+    
+    console.log("Filas encontradas:", result.rowCount);
+    
+    // 3. Enviamos los datos directamente
+    res.json(result.rows);
+
+  } catch (err) {
+    // ESTO ES LO MÁS IMPORTANTE: Ver el error real
+    const error = err as any;
+    console.error("DETALLE DEL ERROR SQL:", error.message);
+    console.error("CÓDIGO DE ERROR:", error.code); // Por ejemplo '42P1' si la columna no existe
+    
+    res.status(500).json({ 
+      ok: false, 
+      error: "Error interno", 
+      message: error.message 
+    });
+  }
+});
+
 app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
   console.log("BODY:", req.body);
   console.log("FILE:", req.file);
@@ -1205,39 +1240,7 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
 });
 
 
-// GET: Obtener solo las que tienen seguimiento (true)
-app.get("/refacciones/destacadas", async (req, res) => {
-  console.log("--- Intento de carga de destacadas ---");
-  try {
-    // 1. Verificamos si el pool existe
-    if (!pool) {
-      console.error("Error: El pool de conexión no está definido");
-      return res.status(500).json({ ok: false, error: "No hay conexión a DB" });
-    }
 
-    // 2. Ejecutamos la consulta con un nombre de columna que ya vimos que existe
-    const result = await pool.query(
-      'SELECT id, nombreprod, modelo, ubicacion, destacada FROM refacciones WHERE destacada = true'
-    ); 
-    
-    console.log("Filas encontradas:", result.rowCount);
-    
-    // 3. Enviamos los datos directamente
-    res.json(result.rows);
-
-  } catch (err) {
-    // ESTO ES LO MÁS IMPORTANTE: Ver el error real
-    const error = err as any;
-    console.error("DETALLE DEL ERROR SQL:", error.message);
-    console.error("CÓDIGO DE ERROR:", error.code); // Por ejemplo '42P1' si la columna no existe
-    
-    res.status(500).json({ 
-      ok: false, 
-      error: "Error interno", 
-      message: error.message 
-    });
-  }
-});
 
 // PUT: Cambiar el estado (Toggle)
 app.put("/refacciones/:id/broadcast", async (req, res) => {
