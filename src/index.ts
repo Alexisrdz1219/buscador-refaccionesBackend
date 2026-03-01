@@ -1204,15 +1204,17 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
   }
 });
 
+
+
 app.get("/refacciones/destacadas", async (req, res) => {
   try {
+    // IMPORTANTE: Verifica si tu columna es 'destacada' o 'broadcast'
     const result = await pool.query(
-      "SELECT * FROM refacciones WHERE destacada = true"
+      "SELECT * FROM refacciones WHERE destacada = true" 
     ); 
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al cargar destacadas" });
+    res.status(500).json({ error: "Error al cargar" });
   }
 });
 
