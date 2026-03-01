@@ -1207,14 +1207,35 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
 
 // GET: Obtener solo las que tienen seguimiento (true)
 app.get("/refacciones/destacadas", async (req, res) => {
+  console.log("--- Intento de carga de destacadas ---");
   try {
+    // 1. Verificamos si el pool existe
+    if (!pool) {
+      console.error("Error: El pool de conexión no está definido");
+      return res.status(500).json({ ok: false, error: "No hay conexión a DB" });
+    }
+
+    // 2. Ejecutamos la consulta con un nombre de columna que ya vimos que existe
     const result = await pool.query(
-      "SELECT id, nombreprod, modelo, ubicacion FROM refacciones WHERE destacada = true ORDER BY id DESC"
+      'SELECT id, nombreprod, modelo, ubicacion, destacada FROM refacciones WHERE destacada = true'
     ); 
+    
+    console.log("Filas encontradas:", result.rowCount);
+    
+    // 3. Enviamos los datos directamente
     res.json(result.rows);
+
   } catch (err) {
-    console.error("Error en GET destacadas:", (err as Error).message);
-    res.status(500).json({ error: "Error al cargar destacadas" });
+    // ESTO ES LO MÁS IMPORTANTE: Ver el error real
+    const error = err as any;
+    console.error("DETALLE DEL ERROR SQL:", error.message);
+    console.error("CÓDIGO DE ERROR:", error.code); // Por ejemplo '42P1' si la columna no existe
+    
+    res.status(500).json({ 
+      ok: false, 
+      error: "Error interno", 
+      message: error.message 
+    });
   }
 });
 
