@@ -25,29 +25,7 @@ import { log } from "./logger";
   app.use(cors());
   app.use(express.json());
 
- app.use((req: any, res, next) => {
 
-  const inicio = Date.now();
-
-  res.on("finish", () => {
-
-    const duracion = Date.now() - inicio;
-
-    log("INFO", "Petición HTTP", {
-      method: req.method,
-      url: req.originalUrl,
-      status: res.statusCode,
-      tiempo: `${duracion}ms`,
-      ip: req.ip,
-      usuario: req.user?.nombre || null,
-      rol: req.user?.rol || null
-    }, "/api");
-
-  });
-
-  next();
-
-});
 
   app.get("/ping", (req, res) => {
   res.status(200).json({ status: "ok" });
@@ -1012,6 +990,30 @@ log("INFO", "Maquina ID recibido", { maquinaId: id }, "/maquinas");
       return res.status(403).json({ error: "Token inválido" });
     }
   }
+
+   app.use((req: any, res, next) => {
+
+  const inicio = Date.now();
+
+  res.on("finish", () => {
+
+    const duracion = Date.now() - inicio;
+
+    log("INFO", "Petición HTTP", {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      tiempo: `${duracion}ms`,
+      ip: req.ip,
+      usuario: req.usuario?.id,
+      rol: req.usuario?.rol
+    }, "/api");
+
+  });
+
+  next();
+
+});
 
   const bcrypt = require("bcrypt");
   const jwt = require("jsonwebtoken");
