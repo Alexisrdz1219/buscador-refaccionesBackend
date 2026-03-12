@@ -25,7 +25,7 @@ import { log } from "./logger";
   app.use(cors());
   app.use(express.json());
 
-  app.use((req, res, next) => {
+ app.use((req: any, res, next) => {
 
   const inicio = Date.now();
 
@@ -38,7 +38,9 @@ import { log } from "./logger";
       url: req.originalUrl,
       status: res.statusCode,
       tiempo: `${duracion}ms`,
-      ip: req.ip
+      ip: req.ip,
+      usuario: req.user?.nombre || null,
+      rol: req.user?.rol || null
     }, "/api");
 
   });
@@ -1015,56 +1017,87 @@ log("INFO", "Maquina ID recibido", { maquinaId: id }, "/maquinas");
   const jwt = require("jsonwebtoken");
 
   // FUNCIONALIDAD DE LOGIN
-  app.post("/login", async (req, res) => {
-    const { email, password } = req.body;
+ app.post("/login", async (req, res) => {
 
-    try {
-      const result = await pool.query(
-        "SELECT * FROM usuarios WHERE email = $1 AND activo = true",
-        [email]
-      );
+  const { email, password } = req.body;
 
-      if (result.rows.length === 0) {
-        return res.status(401).json({ error: "Usuario no encontrado" });
-      }
+  try {
 
-      const usuario = result.rows[0];
+    const result = await pool.query(
+      "SELECT * FROM usuarios WHERE email = $1 AND activo = true",
+      [email]
+    );
 
-      const passwordValida = await bcrypt.compare(password, usuario.password);
+    // ❌ usuario no encontrado
+    if (result.rows.length === 0) {
 
-      if (!passwordValida) {
-        return res.status(401).json({ error: "Contraseña incorrecta" });
-      }
+      log("WARN", "Intento de login con usuario inexistente", {
+        email,
+        ip: req.ip
+      }, "/login");
 
-      const token = jwt.sign(
-        { id: usuario.id, rol: usuario.rol },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES }
-      );
+      return res.status(401).json({ error: "Usuario no encontrado" });
 
-      await pool.query(
-        `INSERT INTO sesiones_activas 
-        (usuario_id, token, ip, user_agent, expira_en)
-        VALUES ($1, $2, $3, $4, NOW() + INTERVAL '8 hours')`,
-        [
-          usuario.id,
-          token,
-          req.ip,
-          req.headers["user-agent"]
-        ]
-      );
-
-      res.json({
-        token,
-        nombre: usuario.nombre,
-        rol: usuario.rol
-      });
-
-    } catch (err) {
-      log("ERROR", "Error capturado", { error: err }, "/server");
-      res.status(500).json({ error: "Error en login" });
     }
-  });
+
+    const usuario = result.rows[0];
+
+    const passwordValida = await bcrypt.compare(password, usuario.password);
+
+    // ❌ contraseña incorrecta
+    if (!passwordValida) {
+
+      log("WARN", "Contraseña incorrecta", {
+        usuario: usuario.nombre,
+        email: usuario.email,
+        ip: req.ip
+      }, "/login");
+
+      return res.status(401).json({ error: "Contraseña incorrecta" });
+
+    }
+
+    const token = jwt.sign(
+      { id: usuario.id, rol: usuario.rol },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES }
+    );
+
+    await pool.query(
+      `INSERT INTO sesiones_activas 
+      (usuario_id, token, ip, user_agent, expira_en)
+      VALUES ($1, $2, $3, $4, NOW() + INTERVAL '8 hours')`,
+      [
+        usuario.id,
+        token,
+        req.ip,
+        req.headers["user-agent"]
+      ]
+    );
+
+    // ✅ login exitoso
+    log("INFO", "Usuario inició sesión", {
+      usuario: usuario.nombre,
+      email: usuario.email,
+      rol: usuario.rol,
+      ip: req.ip
+    }, "/login");
+
+    res.json({
+      token,
+      nombre: usuario.nombre,
+      rol: usuario.rol
+    });
+
+  } catch (err) {
+
+    log("ERROR", "Error en login", { error: err }, "/login");
+
+    res.status(500).json({ error: "Error en login" });
+
+  }
+
+});
   // ROLES
   function permitirRoles(...rolesPermitidos: string[]) {
     return (req: Request, res: Response, next: NextFunction) => {
