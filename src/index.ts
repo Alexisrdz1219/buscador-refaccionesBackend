@@ -6,6 +6,7 @@ import multer from "multer";
 import XLSX from "xlsx";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
+import { log } from "./logger";
 
 
 
@@ -24,8 +25,34 @@ import streamifier from "streamifier";
   app.use(cors());
   app.use(express.json());
 
+  app.use((req, res, next) => {
+
+  const inicio = Date.now();
+
+  res.on("finish", () => {
+
+    const duracion = Date.now() - inicio;
+
+    log("INFO", "Petición HTTP", {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      tiempo: `${duracion}ms`,
+      ip: req.ip
+    }, "/api");
+
+  });
+
+  next();
+
+});
+
   app.get("/ping", (req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+app.get("/logs", (req, res) => {
+  res.json(log);
 });
 
   // Conexion con la base de datos
@@ -41,7 +68,7 @@ import streamifier from "streamifier";
   });
 
   app.listen(5000, () => {
-    console.log("Backend: 5000");
+    log("INFO", "Backend iniciado", { puerto: 5000 }, "/server");
   });
 
 
@@ -49,8 +76,9 @@ import streamifier from "streamifier";
     try {
       const result = await pool.query("SELECT NOW()");
       res.json({ ok: true, message: "Backend y base de datos conectados", time: result.rows[0].now,});
-    } catch (error) {
-      console.error(error);
+    } catch (e) {
+      const error = e as Error;
+      log("ERROR", "Error en proceso", { message: error.message,stack: error.stack}, "/refacciones");
       res.status(500).json({ ok: false, message: "Error conectando a la base de datos",});
     }
   });
@@ -90,7 +118,12 @@ import streamifier from "streamifier";
       });
 
     } catch (error) {
-      console.error("Error en consulta:", error);
+     const err = error as Error;
+
+log("ERROR", "Error en consulta", {
+  message: err.message,
+  stack: err.stack
+}, "/consulta");
       return res.status(500).json({
         ok: false,
         error: "Error al consultar la base"
@@ -166,102 +199,25 @@ import streamifier from "streamifier";
         });
 
       } catch (error) {
-        console.error(error);
+        const err = error as Error;
+
+log("ERROR", "Error en consulta", {
+  message: err.message,
+  stack: err.stack
+}, "/consulta");
         res.status(500).json({ ok: false });
       }
     }
   );
-  // Refacciones por id
-//   app.put("/refacciones/:id",upload.single("imagen"),async (req, res) => {
 
-//       console.log("BODY:", req.body);
-//       console.log("FILE:", req.file);
-      
-
-      
-//       try {
-//         const { id } = req.params;
-//         const body = req.body || {};
-
-//         // 🔹 compatibilidad viene como STRING
-//         let compatibilidad: number[] = [];
-//         if (body.compatibilidad) {
-//           compatibilidad = JSON.parse(body.compatibilidad);
-//         }
-
-//         // 🔹 campos normales
-//         const { compatibilidad: _c, ...campos } = body;
-//   const nummaquina = req.body.nummaquina || null;
-
-//   if (nummaquina !== null) {
-//     campos.nummaquina = nummaquina;
-//   }
-
-//         let imageUrl = null;
-//         // 🔹 si hay imagen
-//         if (req.file) {
-//     const uploadFromBuffer = () =>
-//       new Promise<string>((resolve, reject) => {
-//         const stream = cloudinary.uploader.upload_stream(
-//           { folder: "refacciones" },
-//           (error, result) => {
-//             if (error) reject(error);
-//             else resolve(result!.secure_url);
-//           }
-//         );
-
-//         streamifier.createReadStream(req.file!.buffer).pipe(stream);
-//       });
-
-//     imageUrl = await uploadFromBuffer();
-//     campos.imagen = imageUrl;
-//   }
-
-//   else if (body.imagenUrl && body.imagenUrl.trim() !== "") {
-//   campos.imagen = body.imagenUrl.trim();
-// }
-
-//         // 🔹 actualizar refacción
-//         const keys = Object.keys(campos);
-//         const values = Object.values(campos);
-
-//         if (keys.length > 0) {
-//           const set = keys.map((k, i) => `${k}=$${i + 1}`).join(",");
-
-//           await pool.query(
-//             `UPDATE refacciones SET ${set} WHERE id=$${keys.length + 1}`,
-//             [...values, id]
-//           );
-//         }
-
-//         // 🔹 actualizar compatibilidad
-//         await pool.query(
-//           "DELETE FROM refaccion_maquina WHERE refaccion_id=$1",
-//           [id]
-//         );
-
-//         for (const mid of compatibilidad) {
-//           await pool.query(
-//             "INSERT INTO refaccion_maquina (refaccion_id, maquina_id) VALUES ($1,$2)",
-//             [id, mid]
-//           );
-//         }
-
-//         res.json({ ok: true });
-//       } catch (e) {
-//         console.error(e);
-//         res.status(500).json({ ok: false });
-//       }
-//     }
-//   );
-
-// GET: Obtener solo las que tienen seguimiento (true)
 app.get("/refacciones/destacadas", async (req, res) => {
-  console.log("--- Intento de carga de destacadas ---");
+    log("INFO", "Intento de carga de destacadas", { usuario: req.usuario?.email }, "/destacadas");
   try {
     // 1. Verificamos si el pool existe
     if (!pool) {
-      console.error("Error: El pool de conexión no está definido");
+      log("ERROR", "Error: el pool de conexión no está definido", {
+  contexto: "Intento de consulta a PostgreSQL sin pool activo"
+}, "/database");
       return res.status(500).json({ ok: false, error: "No hay conexión a DB" });
     }
 
@@ -270,28 +226,34 @@ app.get("/refacciones/destacadas", async (req, res) => {
       'SELECT id, nombreprod, modelo, ubicacion, destacada FROM refacciones WHERE destacada = true'
     ); 
     
-    console.log("Filas encontradas:", result.rowCount);
+  log("INFO", "Refacciones destacadas encontradas", { total: result.rowCount }, "/destacadas");
     
     // 3. Enviamos los datos directamente
     res.json(result.rows);
 
   } catch (err) {
-    // ESTO ES LO MÁS IMPORTANTE: Ver el error real
-    const error = err as any;
-    console.error("DETALLE DEL ERROR SQL:", error.message);
-    console.error("CÓDIGO DE ERROR:", error.code); // Por ejemplo '42P1' si la columna no existe
-    
-    res.status(500).json({ 
-      ok: false, 
-      error: "Error interno", 
-      message: error.message 
-    });
-  }
+
+  const error = err as any;
+
+  log("ERROR", "Error SQL en consulta", {
+    message: error.message,
+    code: error.code,
+    detail: error.detail,
+    hint: error.hint
+  }, "/database");
+
+  res.status(500).json({
+    ok: false,
+    error: "Error interno",
+    message: error.message
+  });
+
+}
 });
 
 app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
-  console.log("BODY:", req.body);
-  console.log("FILE:", req.file);
+  log("INFO", "Datos recibidos en request", { body: req.body }, "/upload");
+log("INFO", "Archivo recibido", { file: req.file?.originalname }, "/upload");
 
   
 
@@ -383,7 +345,8 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
     res.json({ ok: true });
 
   } catch (e) {
-    console.error(e);
+    const error = e as Error;
+      log("ERROR", "Error capturado", { message: error.message, stack: error.stack }, "/server");
     res.status(500).json({ ok: false });
   }
 });
@@ -399,7 +362,7 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
       res.json({ ok: true });
     } catch (error) {
-      console.error(error);
+      log("ERROR", "Error capturado", { error: error }, "/server");
       res.status(500).json({ ok: false });
     }
   });
@@ -442,7 +405,7 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
         });
 
       } catch (error) {
-        console.error(error);
+        log("ERROR", "Error capturado", { error: error }, "/server");
         res.status(500).json({ ok: false });
       }
     }
@@ -515,9 +478,11 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
   const palFinal = merged.join(", ");
 
-  console.log("Actual:", arrActual);
-  console.log("Excel:", arrNueva);
-  console.log("Final:", merged);
+ log("INFO", "Datos actuales cargados", { cantidad: arrActual.length }, "/excel-merge");
+
+log("INFO", "Datos recibidos desde Excel", { cantidad: arrNueva.length }, "/excel-merge");
+
+log("INFO", "Resultado final de mezcla", { cantidad: merged.length }, "/excel-merge");
 
             await pool.query(
               "UPDATE refacciones SET cantidad = $1, palclave = $2 WHERE refinterna = $3",
@@ -544,8 +509,9 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
             nuevos.push(data);
             insertados++;
-            console.log("Insertando nueva ref:", data.refInterna);
-  console.log("Palabras clave:", data.palClave);
+           log("INFO", "Insertando nueva refacción", { refInterna: data.refInterna }, "/refacciones");
+
+log("INFO", "Palabras clave registradas", { palabrasClave: data.palClave }, "/refacciones");
 
           }
         }
@@ -558,7 +524,7 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
         });
 
       } catch (error) {
-        console.error(error);
+        log("ERROR", "Error capturado", { error: error }, "/server");
         res.status(500).json({ ok: false });
       }
     }
@@ -624,7 +590,7 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
       });
 
     } catch (err) {
-      console.error(err);
+      log("ERROR", "Error capturado", { error: err }, "/server");
       res.status(500).json({ ok: false });
     }
   });
@@ -736,7 +702,7 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
       res.json(result.rows);
     } catch (error) {
-      console.error(error);
+      log("ERROR", "Error capturado", { error: error }, "/server");
       res.status(500).json({ ok: false });
     }
   });
@@ -760,7 +726,7 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
       res.json({ ok: true });
     } catch (error) {
-      console.error(error);
+      log("ERROR", "Error capturado", { error: error }, "/server");
       res.status(500).json({ ok: false });
     }
   });
@@ -806,7 +772,7 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
       res.json(refaccion);
     } catch (error) {
-      console.error(error);
+      log("ERROR", "Error capturado", { error: error }, "/server");
       res.status(500).json({ ok: false });
     }
   });
@@ -857,10 +823,10 @@ app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
         JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
         WHERE rm.maquina_id = $1
       `, [id]);
-console.log("MAQUINA_ID RECIBIDO:", id);
+log("INFO", "Maquina ID recibido", { maquinaId: id }, "/maquinas");
       res.json(rows);
     } catch (e) {
-      console.error(e);
+      log("ERROR", "Error capturado", { error: e }, "/server");
       res.status(500).json([]);
     }
     
@@ -878,11 +844,12 @@ console.log("MAQUINA_ID RECIBIDO:", id);
         WHERE LOWER(TRIM(m.maquinamod)) = LOWER(TRIM($1))
       `, [maquinamod]);
 
-      console.log("RESULTADOS:", rows.length);
+      log("INFO", "Refacciones por modelo obtenidas", { cantidad: rows.length }, "/refacciones-por-maquinamod");
 
       res.json(rows);
     } catch (e) {
-      console.error(e);
+      const error = e as Error;
+      log("ERROR", "Error capturado", { message: error.message, stack: error.stack }, "/server");
       res.status(500).json([]);
     }
     
@@ -1075,7 +1042,7 @@ console.log("MAQUINA_ID RECIBIDO:", id);
       });
 
     } catch (err) {
-      console.error(err);
+      log("ERROR", "Error capturado", { error: err }, "/server");
       res.status(500).json({ error: "Error en login" });
     }
   });
@@ -1153,7 +1120,7 @@ console.log("MAQUINA_ID RECIBIDO:", id);
         rol: usuario.rol
       });
     } catch (err) {
-      console.error(err);
+      log("ERROR", "Error capturado", { error: err }, "/server");
       res.status(500).json({ error: "Error al obtener usuario" });
     }
   });
@@ -1200,7 +1167,7 @@ console.log("MAQUINA_ID RECIBIDO:", id);
     res.json(result.rows[0]);
 
   } catch (error) {
-    console.error(error);
+    log("ERROR", "Error capturado", { error }, "/server");
     res.status(500).json({ error: "Error" });
   }
 });
@@ -1240,7 +1207,8 @@ app.delete("/refacciones/:id/imagen", async (req, res) => {
     res.json({ ok: true });
 
   } catch (e) {
-    console.error(e);
+    const error = e as Error;
+      log("ERROR", "Error capturado", { message: error.message, stack: error.stack }, "/server");
     res.status(500).json({ ok: false });
   }
 });
@@ -1264,8 +1232,17 @@ app.put("/refacciones/:id/broadcast", async (req, res) => {
 
     res.json({ ok: true, nuevoEstado: result.rows[0].destacada });
   } catch (error) {
-    console.error("Error en PUT broadcast:", (error as Error).message);
-    res.status(500).json({ ok: false });
-  }
+
+  const err = error as Error;
+
+  log("ERROR", "Error en PUT broadcast", {
+    message: err.message,
+    stack: err.stack,
+    body: req.body
+  }, "/broadcast");
+
+  res.status(500).json({ ok: false });
+
+}
 });
 
