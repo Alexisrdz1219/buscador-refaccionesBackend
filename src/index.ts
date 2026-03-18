@@ -290,11 +290,17 @@ app.get("/refacciones/destacadas", async (req, res) => {
 }
 });
 
+
 app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
   log("INFO", "Datos recibidos en request", { body: req.body }, "/upload");
 log("INFO", "Archivo recibido", { file: req.file?.originalname }, "/upload");
 
-  
+  log("INFO", "DEBUG archivo", {
+  existeFile: !!req.file,
+  size: req.file?.size,
+  mimetype: req.file?.mimetype,
+  tieneBuffer: !!req.file?.buffer
+}, "/debug");
 
   try {
     const { id } = req.params;
@@ -332,16 +338,25 @@ log("INFO", "Archivo recibido", { file: req.file?.originalname }, "/upload");
     }
 
     // 🔹 si hay archivo → subir a Cloudinary
-    if (req.file) {
-  const fileName = `refaccion_${Date.now()}_${req.file.originalname}`;
+  if (req.file) {
+  if (!req.file.buffer) {
+    throw new Error("Buffer de archivo inválido");
+  }
+
+  const ext = req.file.originalname.split(".").pop();
+  const fileName = `refaccion_${Date.now()}.${ext}`;
 
   const { error } = await supabase.storage
     .from("refacciones")
     .upload(fileName, req.file.buffer, {
       contentType: req.file.mimetype,
+      upsert: true
     });
 
-  if (error) throw error;
+  if (error) {
+    log("ERROR", "Error subiendo a Supabase", error, "/upload");
+    throw error;
+  }
 
   const { data } = supabase.storage
     .from("refacciones")
