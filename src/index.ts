@@ -230,7 +230,10 @@ app.get("/logs", (req, res) => {
     "/consulta"
   );
 
-  res.status(500).json({ ok: false });
+  res.status(500).json({
+  ok: false,
+  error: err.message
+});
 
 }
     }
@@ -379,7 +382,10 @@ log("INFO", "Archivo recibido", { file: req.file?.originalname }, "/upload");
   } catch (e) {
     const error = e as Error;
       log("ERROR", "Error capturado", { message: error.message, stack: error.stack }, "/server");
-    res.status(500).json({ ok: false });
+    res.status(500).json({
+  ok: false,
+  error: error.message
+});
   }
 });
   // Borrar refacción POR ID
