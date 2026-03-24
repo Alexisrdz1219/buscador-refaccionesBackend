@@ -1376,3 +1376,43 @@ app.put("/refacciones/:id/broadcast", async (req, res) => {
 }
 });
 
+app.post("/historial-uso", async (req, res) => {
+  try {
+    const {
+      refaccion_id,
+      nombre,
+      refinterna,
+      usuario,
+      zona,
+      cantidad
+    } = req.body;
+
+    await pool.query(
+      `
+      INSERT INTO historial_uso
+      (refaccion_id, nombre, refinterna, usuario, zona, cantidad)
+      VALUES ($1,$2,$3,$4,$5,$6)
+      `,
+      [refaccion_id, nombre, refinterna, usuario, zona, cantidad]
+    );
+
+    res.json({ ok: true });
+
+  } catch (error) {
+    res.status(500).json({ ok: false });
+  }
+});
+
+app.get("/historial-uso", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM historial_uso
+      ORDER BY fecha DESC
+    `);
+
+    res.json(result.rows);
+
+  } catch (error) {
+    res.status(500).json({ ok: false });
+  }
+});
