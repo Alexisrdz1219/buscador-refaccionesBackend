@@ -1384,7 +1384,7 @@ app.post("/historial-uso", async (req, res) => {
       refinterna,
       usuario,
       zona,
-      cantidadUso
+      cantidad
     } = req.body;
 
     await pool.query(
@@ -1393,7 +1393,7 @@ app.post("/historial-uso", async (req, res) => {
       (refaccion_id, nombre, refinterna, usuario, zona, cantidad)
       VALUES ($1,$2,$3,$4,$5,$6)
       `,
-      [refaccion_id, nombre, refinterna, usuario, zona, cantidadUso]
+      [refaccion_id, nombre, refinterna, usuario, zona, cantidad]
     );
 
     res.json({ ok: true });
