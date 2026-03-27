@@ -19,6 +19,9 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION
 });
 
+console.log("DB:", process.env.DB_NAME);
+console.log("AWS:", process.env.AWS_ACCESS_KEY);
+
   const app = express();
 
     app.use(cors());
