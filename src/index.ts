@@ -6,10 +6,18 @@ import { Pool } from "pg";
 import multer from "multer";
 import XLSX from "xlsx";
 import { log } from "./logger";
-import { createClient } from "@supabase/supabase-js";
+// import { createClient } from "@supabase/supabase-js";
 
-  const supabase = createClient( process.env.SUPABASE_URL!, process.env.SUPABASE_KEY! );
-  const upload = multer({ storage: multer.memoryStorage() });
+  // const supabase = createClient( process.env.SUPABASE_URL!, process.env.SUPABASE_KEY! );
+   const upload = multer({ storage: multer.memoryStorage() });
+
+  import AWS from "aws-sdk";
+
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY,
+  secretAccessKey: process.env.AWS_SECRET_KEY,
+  region: process.env.AWS_REGION
+});
 
   const app = express();
 
@@ -282,26 +290,37 @@ import { createClient } from "@supabase/supabase-js";
         throw new Error("Buffer de archivo inválido");
       }
 
+      // const ext = req.file.originalname.split(".").pop();
+      // const fileName = `refaccion_${Date.now()}.${ext}`;
+
       const ext = req.file.originalname.split(".").pop();
-      const fileName = `refaccion_${Date.now()}.${ext}`;
+const fileName = `refaccion_${Date.now()}.${ext}`;
 
-      const { error } = await supabase.storage
-        .from("refacciones")
-        .upload(fileName, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: true
-        });
+const result = await s3.upload({
+  Bucket: process.env.AWS_BUCKET_NAME!,
+  Key: fileName,
+  Body: req.file.buffer,
+  ContentType: req.file.mimetype
+}).promise();
 
-      if (error) {
-        log("ERROR", "Error subiendo a Supabase", error, "/upload");
-        throw error;
-      }
+campos.imagen = result.Location;
+      // const { error } = await supabase.storage
+      //   .from("refacciones")
+      //   .upload(fileName, req.file.buffer, {
+      //     contentType: req.file.mimetype,
+      //     upsert: true
+      //   });
 
-      const { data } = supabase.storage
-        .from("refacciones")
-        .getPublicUrl(fileName);
+      // if (error) {
+      //   log("ERROR", "Error subiendo a Supabase", error, "/upload");
+      //   throw error;
+      // }
 
-      campos.imagen = data.publicUrl;
+      // const { data } = supabase.storage
+      //   .from("refacciones")
+      //   .getPublicUrl(fileName);
+
+      // campos.imagen = data.publicUrl;
     }
 
         // 🔹 si NO hay archivo pero sí URL válida
@@ -1232,19 +1251,29 @@ import { Request, Response, NextFunction } from "express";
         }
 
         // 🔥 Si la imagen está en Supabase
-        if (imagen.includes("/storage/v1/object/public/refacciones/")) {
+        // if (imagen.includes("/storage/v1/object/public/refacciones/")) {
 
-          // 👉 Extraer nombre del archivo desde la URL
-          const fileName = imagen.split("/").pop();
+        //   // 👉 Extraer nombre del archivo desde la URL
+        //   const fileName = imagen.split("/").pop();
 
-          if (fileName) {
-            const { error } = await supabase.storage
-              .from("Refacciones")
-              .remove([fileName]);
+        //   if (fileName) {
+        //     const { error } = await supabase.storage
+        //       .from("Refacciones")
+        //       .remove([fileName]);
 
-            if (error) throw error;
-          }
-        }
+        //     if (error) throw error;
+        //   }
+        // }
+        if (imagen && imagen.includes("amazonaws.com")) {
+  const fileName = imagen.split("/").pop();
+
+  if (fileName) {
+    await s3.deleteObject({
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: fileName
+    }).promise();
+  }
+}
 
         // 🔹 Limpiar DB
         await pool.query(

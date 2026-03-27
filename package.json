@@ -15,6 +15,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",
     "@types/xlsx": "^0.0.35",
+    "aws-sdk": "^2.1693.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.9.0",
     "cors": "^2.8.6",
