@@ -103,6 +103,31 @@ console.log("AWS:", process.env.AWS_ACCESS_KEY);
   }
 
     });
+
+
+app.get("/refacciones/envio", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, nombreprod, modelo, ubicacion, en_envio
+      FROM refacciones
+      WHERE en_envio IS TRUE
+      ORDER BY id DESC
+    `);
+
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error("🔥 ERROR REAL ENVIO:", error);
+
+    res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : "Error desconocido"
+    });
+  }
+});
+
+
+
     // Importar Excel
     app.post("/importar-excel", upload.single("file"), async (req, res) => {
       try {
@@ -1044,26 +1069,7 @@ app.get("/orings", async (req, res) => {
   }
 });
 
-app.get("/refacciones/envio", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT id, nombreprod, modelo, ubicacion, en_envio
-      FROM refacciones
-      WHERE en_envio IS TRUE
-      ORDER BY id DESC
-    `);
 
-    res.json(result.rows);
-
-  } catch (error) {
-    console.error("🔥 ERROR REAL ENVIO:", error);
-
-    res.status(500).json({
-      ok: false,
-      error: error instanceof Error ? error.message : "Error desconocido"
-    });
-  }
-});
 
 app.put("/refacciones/envio/:id", async (req, res) => {
 
