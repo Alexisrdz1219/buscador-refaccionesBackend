@@ -1044,6 +1044,29 @@ app.get("/orings", async (req, res) => {
   }
 });
 
+app.put("/refacciones/envio/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `UPDATE refacciones 
+       SET en_envio = NOT en_envio 
+       WHERE id = $1 
+       RETURNING en_envio`,
+      [id]
+    );
+
+    res.json({
+      ok: true,
+      en_envio: result.rows[0].en_envio
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false });
+  }
+});
+
     // INICIO DE SESION
 import { Request, Response, NextFunction } from "express";
     async function verificarSesion( req: Request, res: Response, next: NextFunction) {
