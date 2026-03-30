@@ -960,6 +960,50 @@ campos.imagen = result.Location;
         unidades: unidades.rows.map(u => u.unidad)
       });
     });
+
+    app.post("/usos", async (req, res) => {
+  const { refaccion_id, area_maquina, lleva_oring } = req.body;
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO usos_refaccion (refaccion_id, area_maquina, lleva_oring)
+       VALUES ($1, $2, $3) RETURNING *`,
+      [refaccion_id, area_maquina, lleva_oring]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al guardar uso" });
+  }
+});
+
+app.get("/usos/:refaccionId", async (req, res) => {
+  const { refaccionId } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM usos_refaccion WHERE refaccion_id = $1",
+      [refaccionId]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener usos" });
+  }
+});
+
+
+app.delete("/usos/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM usos_refaccion WHERE id = $1", [id]);
+    res.json({ message: "Uso eliminado" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al eliminar" });
+  }
+});
     // INICIO DE SESION
 import { Request, Response, NextFunction } from "express";
     async function verificarSesion( req: Request, res: Response, next: NextFunction) {
