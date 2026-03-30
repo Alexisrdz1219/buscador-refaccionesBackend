@@ -1045,7 +1045,7 @@ app.get("/orings", async (req, res) => {
 });
 
 
-app.put("/refacciones/envio:id", async (req, res) => {
+app.put("/refacciones/envio/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
