@@ -1050,12 +1050,12 @@ app.put("/refacciones/:id/envio", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE refacciones 
-       SET en_envio = NOT en_envio 
-       WHERE id = $1 
-       RETURNING en_envio`,
-      [id]
-    );
+  `UPDATE refacciones 
+   SET en_envio = NOT COALESCE(en_envio, false)
+   WHERE id = $1 
+   RETURNING en_envio`,
+  [id]
+);
 
     res.json({
       ok: true,
@@ -1075,9 +1075,10 @@ app.get("/refacciones/envio", async (req, res) => {
     );
 
     res.json(result.rows);
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json([]);
+    console.error("🔥 ERROR REAL:", error); // 👈 ESTE ES EL IMPORTANTE
+    res.status(500).json({ error });
   }
 });
 
