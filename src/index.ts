@@ -1023,11 +1023,12 @@ app.delete("/usos/:id", async (req, res) => {
 app.get("/orings", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM refacciones WHERE tipoprod ILIKE '%O-RING%'"
+      "SELECT id, nombreprod FROM refacciones WHERE tipoprod ILIKE '%O-RING%'"
     );
 
     res.json(result.rows);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Error al obtener orings" });
   }
 });
