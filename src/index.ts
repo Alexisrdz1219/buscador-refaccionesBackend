@@ -1058,7 +1058,10 @@ app.put("/refacciones/:id/envio", async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ ok: false });
+      return res.status(404).json({
+        ok: false,
+        error: "Refacción no encontrada"
+      });
     }
 
     res.json({
@@ -1067,8 +1070,12 @@ app.put("/refacciones/:id/envio", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("🔥 ERROR UPDATE:", onmessage);
-    res.status(500).json({ ok: false });
+    console.error("🔥 ERROR UPDATE:", error); // ✅ CORREGIDO
+
+    res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : "Error desconocido"
+    });
   }
 });
 
@@ -1083,14 +1090,14 @@ app.get("/refacciones/envio", async (req, res) => {
 
     res.json(result.rows);
 
-  } catch (error: any) {
-  console.error("🔥 ERROR REAL ENVIO:", error);
+  } catch (error) {
+    console.error("🔥 ERROR REAL ENVIO:", error);
 
-  res.status(500).json({
-    ok: false,
-    error: error.message
-  });
-}
+    res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : "Error desconocido"
+    });
+  }
 });
 
     // INICIO DE SESION
