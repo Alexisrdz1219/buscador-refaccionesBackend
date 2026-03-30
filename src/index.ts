@@ -1050,12 +1050,16 @@ app.put("/refacciones/:id/envio", async (req, res) => {
 
   try {
     const result = await pool.query(
-  `UPDATE refacciones 
-   SET en_envio = NOT COALESCE(en_envio, false)
-   WHERE id = $1 
-   RETURNING en_envio`,
-  [id]
-);
+      `UPDATE refacciones 
+       SET en_envio = NOT COALESCE(en_envio, false)
+       WHERE id = $1 
+       RETURNING en_envio`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false });
+    }
 
     res.json({
       ok: true,
@@ -1063,7 +1067,7 @@ app.put("/refacciones/:id/envio", async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("🔥 ERROR UPDATE:", onmessage);
     res.status(500).json({ ok: false });
   }
 });
@@ -1071,14 +1075,17 @@ app.put("/refacciones/:id/envio", async (req, res) => {
 app.get("/refacciones/envio", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM refacciones WHERE en_envio = true ORDER BY id DESC"
+      `SELECT * 
+       FROM refacciones 
+       WHERE COALESCE(en_envio, false) = true 
+       ORDER BY id DESC`
     );
 
     res.json(result.rows);
 
   } catch (error) {
-    console.error("🔥 ERROR REAL:", error); // 👈 ESTE ES EL IMPORTANTE
-    res.status(500).json({ error });
+    console.error("🔥 ERROR ENVIO:", onmessage);
+    res.status(500).json([]);
   }
 });
 
