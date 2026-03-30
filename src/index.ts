@@ -1004,6 +1004,8 @@ app.delete("/usos/:id", async (req, res) => {
     res.status(500).json({ error: "Error al eliminar" });
   }
 });
+
+
     // INICIO DE SESION
 import { Request, Response, NextFunction } from "express";
     async function verificarSesion( req: Request, res: Response, next: NextFunction) {
