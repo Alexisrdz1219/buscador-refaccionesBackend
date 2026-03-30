@@ -962,19 +962,34 @@ campos.imagen = result.Location;
     });
 
     app.post("/usos", async (req, res) => {
-  const { refaccion_id, area_maquina, lleva_oring } = req.body;
+  const { refaccion_id, area_maquina, lleva_oring, orings } = req.body;
 
   try {
-    const result = await pool.query(
+    // 1. Crear uso
+    const usoResult = await pool.query(
       `INSERT INTO usos_refaccion (refaccion_id, area_maquina, lleva_oring)
        VALUES ($1, $2, $3) RETURNING *`,
       [refaccion_id, area_maquina, lleva_oring]
     );
 
-    res.json(result.rows[0]);
+    const uso = usoResult.rows[0];
+
+    // 2. Insertar orings (si hay)
+    if (lleva_oring && orings && orings.length > 0) {
+      for (let oringId of orings) {
+        await pool.query(
+          `INSERT INTO usos_oring (uso_id, oring_id)
+           VALUES ($1, $2)`,
+          [uso.id, oringId]
+        );
+      }
+    }
+
+    res.json(uso);
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error al guardar uso" });
+    res.status(500).json({ error: error instanceof Error ? error.message : "Error desconocido" });
   }
 });
 
@@ -1005,6 +1020,17 @@ app.delete("/usos/:id", async (req, res) => {
   }
 });
 
+app.get("/orings", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM refacciones WHERE tipoprod ILIKE '%O-RING%'"
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener orings" });
+  }
+});
 
     // INICIO DE SESION
 import { Request, Response, NextFunction } from "express";
