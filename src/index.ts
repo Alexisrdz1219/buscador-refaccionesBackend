@@ -997,13 +997,24 @@ app.get("/usos/:refaccionId", async (req, res) => {
   const { refaccionId } = req.params;
 
   try {
-    const result = await pool.query(
-      "SELECT * FROM usos_refaccion WHERE refaccion_id = $1",
-      [refaccionId]
-    );
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.area_maquina,
+        u.lleva_oring,
+        r.id AS oring_id,
+        r.nombreprod AS oring_nombre
+      FROM usos_refaccion u
+      LEFT JOIN usos_oring uo ON u.id = uo.uso_id
+      LEFT JOIN refacciones r ON uo.oring_id = r.id
+      WHERE u.refaccion_id = $1
+      ORDER BY u.id
+    `, [refaccionId]);
 
     res.json(result.rows);
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Error al obtener usos" });
   }
 });
