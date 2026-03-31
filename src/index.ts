@@ -6,6 +6,7 @@ import { Pool } from "pg";
 import multer from "multer";
 import XLSX from "xlsx";
 import { log } from "./logger";
+import sharp from "sharp";
 // import { createClient } from "@supabase/supabase-js";
 
   // const supabase = createClient( process.env.SUPABASE_URL!, process.env.SUPABASE_KEY! );
@@ -19,8 +20,8 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION
 });
 
-console.log("DB:", process.env.DB_NAME);
-console.log("AWS:", process.env.AWS_ACCESS_KEY);
+// console.log("DB:", process.env.DB_NAME);
+// console.log("AWS:", process.env.AWS_ACCESS_KEY);
 
   const app = express();
 
@@ -266,6 +267,8 @@ app.get("/refacciones/envio", async (req, res) => {
 
     }
     });
+
+
     app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
       log("INFO", "Datos recibidos en request", { body: req.body }, "/upload");
     log("INFO", "Archivo recibido", { file: req.file?.originalname }, "/upload");
@@ -312,7 +315,7 @@ app.get("/refacciones/envio", async (req, res) => {
           imagenUrl = imagenUrl[0]; // tomamos solo la primera
         }
 
-        // 🔹 si hay archivo → subir a Cloudinary
+        // 🔹 si hay archivo → subir 
       if (req.file) {
       if (!req.file.buffer) {
         throw new Error("Buffer de archivo inválido");
@@ -324,14 +327,33 @@ app.get("/refacciones/envio", async (req, res) => {
       const ext = req.file.originalname.split(".").pop();
 const fileName = `refaccion_${Date.now()}.${ext}`;
 
+// const result = await s3.upload({
+//   Bucket: process.env.AWS_BUCKET_NAME!,
+//   Key: fileName,
+//   Body: req.file.buffer,
+//   ContentType: req.file.mimetype
+// }).promise();
+
+// 🔥 COMPRESIÓN AQUÍ
+const compressedBuffer = await sharp(req.file.buffer)
+  .resize(800) // ancho máximo (ajústalo: 400, 600, 800)
+  .jpeg({ quality: 70 }) // calidad (60–80 recomendado)
+  .toBuffer();
+
+// 🔥 SUBIR IMAGEN YA OPTIMIZADA
 const result = await s3.upload({
   Bucket: process.env.AWS_BUCKET_NAME!,
   Key: fileName,
-  Body: req.file.buffer,
-  ContentType: req.file.mimetype
+  Body: compressedBuffer,
+  ContentType: "image/jpeg"
 }).promise();
 
 campos.imagen = result.Location;
+
+
+
+
+
       // const { error } = await supabase.storage
       //   .from("refacciones")
       //   .upload(fileName, req.file.buffer, {
@@ -393,6 +415,8 @@ campos.imagen = result.Location;
     });
       }
     });
+
+
     // Borrar refacción POR ID
     app.delete("/refacciones/:id", async (req, res) => {
       try {
