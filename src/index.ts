@@ -336,6 +336,7 @@ const fileName = `refaccion_${Date.now()}.${ext}`;
 
 // 🔥 COMPRESIÓN AQUÍ
 const compressedBuffer = await sharp(req.file.buffer)
+.rotate()
   .resize(800) // ancho máximo (ajústalo: 400, 600, 800)
   .jpeg({ quality: 70 }) // calidad (60–80 recomendado)
   .toBuffer();
