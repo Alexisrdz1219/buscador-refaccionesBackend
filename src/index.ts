@@ -417,6 +417,89 @@ campos.imagen = result.Location;
       }
     });
 
+app.post("/upload-masivo", upload.array("imagenes"), async (req, res) => {
+  const resultados = [];
+
+  try {
+    const files = (req.files as Express.Multer.File[]) || [];
+
+if (files.length === 0) {
+  return res.status(400).json({
+    ok: false,
+    error: "No se enviaron imágenes"
+  });
+}
+
+      for (const file of files) {
+        // 1. Validar que sea imagen
+        if (!file.mimetype.startsWith("image/")) {
+          resultados.push({ file: file.originalname, status: "no_es_imagen" });
+          continue;
+        }
+
+        // 2. Extraer ID del nombre
+        const match = file.originalname.match(/refaccion_(\d+)/);
+        const id = match ? match[1] : null;
+
+        if (!id) {
+          resultados.push({ file: file.originalname, status: "sin_id" });
+          continue;
+        }
+
+      // 3. Buscar en tu BD
+      const ref = await pool.query(
+  "SELECT imagen FROM refacciones WHERE id = $1",
+  [id]
+);
+
+      if (ref.rows[0].imagen) {
+  resultados.push({ file: file.originalname, status: "ya_tiene" });
+  continue;
+}
+
+if (!file.buffer) {
+  resultados.push({ file: file.originalname, status: "sin_buffer" });
+  continue;
+}
+
+      // 4. Comprimir imagen (YA usas sharp 🔥)
+      const bufferOptimizado = await sharp(file.buffer)
+        .rotate()
+        .resize(800)
+        .jpeg({ quality: 70 })
+        .toBuffer();
+
+      // 5. Subir a S3
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME!,
+        Key: `refacciones/refaccion_${id}.jpg`,
+        Body: bufferOptimizado,
+        ContentType: "image/jpeg"
+      };
+
+      const subida = await s3.upload(params).promise();
+
+      // 6. Guardar en DB (SOLO imagen)
+      await pool.query(
+        "UPDATE refacciones SET imagen = $1 WHERE id = $2",
+        [subida.Location, id]
+      );
+      console.log("Procesando:", file.originalname);
+
+      resultados.push({ file: file.originalname, status: "ok" });
+    }
+
+    res.json({ ok: true, resultados });
+
+  } catch (error) {
+    console.error("🔥 ERROR MASIVO:", error);
+
+    res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : "Error desconocido"
+    });
+  }
+});
 
     // Borrar refacción POR ID
     app.delete("/refacciones/:id", async (req, res) => {
