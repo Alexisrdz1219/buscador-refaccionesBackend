@@ -419,6 +419,11 @@ campos.imagen = result.Location;
 
 app.post("/upload-masivo", upload.array("imagenes"), async (req, res) => {
   const resultados = [];
+  let ok = 0;
+let noMatch = 0;
+let errores = 0;
+let sinId = 0;
+let noImagen = 0;
 
   try {
     const files = (req.files as Express.Multer.File[]) || [];
@@ -429,7 +434,6 @@ if (files.length === 0) {
     error: "No se enviaron imágenes"
   });
 }
-
       for (const file of files) {
         // 1. Validar que sea imagen
         if (!file.mimetype.startsWith("image/")) {
@@ -454,6 +458,7 @@ const ref = await pool.query(
 
 if (ref.rowCount === 0) {
   resultados.push({ file: file.originalname, status: "no_match" });
+  console.log(`✔ OK: ${ok} | ❌ noMatch: ${noMatch}`);
   continue;
 }
 
@@ -489,9 +494,19 @@ if (!file.buffer) {
       console.log("Procesando:", file.originalname);
 
       resultados.push({ file: file.originalname, status: "ok" });
+      ok++;
     }
 
-    res.json({ ok: true, resultados });
+    res.json({
+  ok: true,
+  total: files.length,
+  subidas: ok,
+  noMatch,
+  sinId,
+  noImagen,
+  errores,
+  resultados
+});
 
   } catch (error) {
     console.error("🔥 ERROR MASIVO:", error);
