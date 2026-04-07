@@ -439,23 +439,25 @@ if (files.length === 0) {
 
         // 2. Extraer ID del nombre
         const match = file.originalname.match(/refaccion_(\d+)/);
-        const id = match ? match[1] : null;
+const numero = match ? match[1] : null;
 
-        if (!id) {
-          resultados.push({ file: file.originalname, status: "sin_id" });
-          continue;
-        }
-
-      // 3. Buscar en tu BD
-      const ref = await pool.query(
-  "SELECT imagen FROM refacciones WHERE id = $1",
-  [id]
-);
-
-      if (ref.rows[0].imagen) {
-  resultados.push({ file: file.originalname, status: "ya_tiene" });
+if (!numero) {
+  resultados.push({ file: file.originalname, status: "sin_id" });
   continue;
 }
+
+// 🔥 buscar por imagen antigua (supabase)
+const ref = await pool.query(
+  "SELECT id FROM refacciones WHERE imagen LIKE $1",
+  [`%${numero}%`]
+);
+
+if (ref.rowCount === 0) {
+  resultados.push({ file: file.originalname, status: "no_match" });
+  continue;
+}
+
+const id = ref.rows[0].id;
 
 if (!file.buffer) {
   resultados.push({ file: file.originalname, status: "sin_buffer" });
