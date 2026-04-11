@@ -9,8 +9,8 @@ import { log } from "./logger";
 import sharp from "sharp";
 // import { createClient } from "@supabase/supabase-js";
 
-  // const supabase = createClient( process.env.SUPABASE_URL!, process.env.SUPABASE_KEY! );
-   const upload = multer({ storage: multer.memoryStorage() });
+// const supabase = createClient( process.env.SUPABASE_URL!, process.env.SUPABASE_KEY! );
+const upload = multer({ storage: multer.memoryStorage() });
 
   import AWS from "aws-sdk";
 
@@ -41,7 +41,7 @@ const s3 = new AWS.S3({
           } 
       catch (e) {
                   const error = e as Error;
-                  log( "ERROR", "Error en proceso", _req, { message: error.message, stack: error.stack },"/refacciones" );
+                  console.error("❌ Error en /health:", { message: error.message, stack: error.stack});
                   res.status(500).json({ ok: false, message: "Error conectando a la base de datos",});
                 }
     });
@@ -68,20 +68,7 @@ const s3 = new AWS.S3({
 
     } catch (error) {
 
-  const err = error as Error;
-
-  log(
-    "ERROR",
-    "Error en consulta",
-    req,
-    {
-      message: err.message,
-      stack: err.stack,
-      query: req.query,
-      body: req.body
-    },
-    "/consulta"
-  );
+ console.log("INFO:", error);
 
   return res.status(500).json({
     ok: false,
@@ -90,11 +77,11 @@ const s3 = new AWS.S3({
 
 }
     });
+
     app.get("/logs-db", async (req, res) => {
   try {
-
     const result = await pool.query(
-      "SELECT * FROM logs ORDER BY created_at DESC LIMIT 100"
+      "SELECT * FROM logs ORDER BY created_at DESC LIMIT 50"
     );
 
     res.json(result.rows);
@@ -102,8 +89,7 @@ const s3 = new AWS.S3({
   } catch (error) {
     res.status(500).json({ ok:false });
   }
-
-    });
+});
 
 
 app.get("/refacciones/envio", async (req, res) => {

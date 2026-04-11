@@ -25,12 +25,9 @@ export async function log(
     timestamp: new Date()
   };
 
-  // guardar en memoria
+  // memoria (esto está bien 👍)
   logs.push(entry);
-
-  if (logs.length > 500) {
-    logs.shift();
-  }
+  if (logs.length > 500) logs.shift();
 
   console.log(
     `[${level}] ${message}`,
@@ -38,13 +35,16 @@ export async function log(
     data || ""
   );
 
-  // guardar en PostgreSQL
+  // 🔥 SOLO ERRORES A DB
+  if (level !== "ERROR") return;
+
   try {
 
     await pool.query(
       `INSERT INTO logs
       (level, message, route, usuario_id, rol, ip, data)
       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+
       [
         level,
         message,
@@ -56,13 +56,17 @@ export async function log(
       ]
     );
 
+    // 🔥 LIMPIEZA AUTOMÁTICA
+    await pool.query(`
+      DELETE FROM logs
+      WHERE id NOT IN (
+        SELECT id FROM logs
+        ORDER BY created_at DESC
+        LIMIT 50
+      )
+    `);
+
   } catch (error) {
-
-    console.error(
-      `[LOGGER ERROR] ${message}`,
-      error
-    );
-
+    console.error(`[LOGGER ERROR] ${message}`, error);
   }
-
 }
