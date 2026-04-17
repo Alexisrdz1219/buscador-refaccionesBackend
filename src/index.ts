@@ -950,10 +950,21 @@ if (!file.buffer) {
       try {
         const { id } = req.params;
 
-        const result = await pool.query(
-          "SELECT * FROM refacciones WHERE id = $1",
-          [id]
-        );
+        const result = await pool.query(`
+  SELECT 
+    r.*,
+    COALESCE(
+      json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
+      '[]'
+    ) AS tags
+  FROM refacciones r
+  LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+  LEFT JOIN tags t ON t.id = rt.tag_id
+  WHERE r.id = $1
+  GROUP BY r.id
+`, [id]
+);
+        
 
         if (result.rows.length === 0) {
           return res.status(404).json({ ok: false });
