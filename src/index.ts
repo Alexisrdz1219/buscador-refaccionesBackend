@@ -133,30 +133,40 @@ app.get("/refacciones", async (_, res) => {
 
 app.post("/refacciones/:id/tags", async (req, res) => {
   const { id } = req.params;
-  const { tags } = req.body; // ["urgente", "nuevo"]
+  const { tags } = req.body;
 
-  for (const nombre of tags) {
-    // crear tag si no existe
-    const tagRes = await pool.query(
-      `INSERT INTO tags (nombre)
-       VALUES ($1)
-       ON CONFLICT (nombre) DO UPDATE SET nombre = EXCLUDED.nombre
-       RETURNING id`,
-      [nombre]
-    );
-
-    const tagId = tagRes.rows[0].id;
-
-    // relacionar
+  try {
+    // 🔥 1. BORRAR RELACIONES ANTERIORES
     await pool.query(
-      `INSERT INTO refacciones_tags (refaccion_id, tag_id)
-       VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [id, tagId]
+      "DELETE FROM refacciones_tags WHERE refaccion_id = $1",
+      [id]
     );
-  }
 
-  res.json({ ok: true });
+    // 🔥 2. INSERTAR NUEVOS TAGS
+    for (const nombre of tags) {
+      const tagRes = await pool.query(
+        `INSERT INTO tags (nombre)
+         VALUES ($1)
+         ON CONFLICT (nombre) DO UPDATE SET nombre = EXCLUDED.nombre
+         RETURNING id`,
+        [nombre]
+      );
+
+      const tagId = tagRes.rows[0].id;
+
+      await pool.query(
+        `INSERT INTO refacciones_tags (refaccion_id, tag_id)
+         VALUES ($1, $2)`,
+        [id, tagId]
+      );
+    }
+
+    res.json({ ok: true });
+
+  } catch (error) {
+    const err = error as Error;
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
     // Importar Excel
