@@ -1107,77 +1107,141 @@ if (!file.buffer) {
   }
 });
     // REFACCIONES CON FILTROS DE BÚSQUEDA AVANZADA
+    // app.get("/buscar-refacciones", async (req, res) => {
+
+    //   const {
+    //     tit,
+    //     ref,
+    //     modelo,
+    //     tipo,
+    //     unidad,
+    //     palabras
+    //   } = req.query;
+
+    //   let condiciones = [];
+    //   let valores = [];
+    //   let contador = 1;
+
+    //   if (tit) {
+
+    //     const result = await pool.query(
+    //       `
+    //       SELECT *
+    //       FROM refacciones
+    //       WHERE nombreprod ILIKE $1
+    //       ORDER BY id DESC
+    //       LIMIT 100
+    //       `,
+    //       [`%${tit}%`]
+    //     );
+
+    //     return res.json(result.rows);
+    //   }
+
+    //   if (ref) {
+    //     condiciones.push(`refinterna ILIKE $${contador++}`);
+    //     valores.push(`%${ref}%`);
+    //   }
+
+    //   if (modelo) {
+    //     condiciones.push(`modelo ILIKE $${contador++}`);
+    //     valores.push(`%${modelo}%`);
+    //   }
+
+    //   if (tipo) {
+    //     condiciones.push(`tipoprod = $${contador++}`);
+    //     valores.push(tipo);
+    //   }
+
+    //   if (unidad) {
+    //     condiciones.push(`unidad = $${contador++}`);
+    //     valores.push(unidad);
+    //   }
+
+    //   if (palabras) {
+    //     condiciones.push(`palclave ILIKE $${contador++}`);
+    //     valores.push(`%${palabras}%`);
+    //   }
+
+    //   const where = condiciones.length
+    //     ? "WHERE " + condiciones.join(" AND ")
+    //     : "";
+
+    //   const result = await pool.query(
+    //     `SELECT *
+    //     FROM refacciones
+    //     ${where}
+    //     ORDER BY id DESC
+    //     LIMIT 100`,
+    //     valores
+    //   );
+
+    //   res.json(result.rows);
+    // });
     app.get("/buscar-refacciones", async (req, res) => {
+  try {
+    const { tit, ref, modelo, tipo, unidad, palabras } = req.query;
 
-      const {
-        tit,
-        ref,
-        modelo,
-        tipo,
-        unidad,
-        palabras
-      } = req.query;
+    let condiciones = [];
+    let valores = [];
+    let contador = 1;
 
-      let condiciones = [];
-      let valores = [];
-      let contador = 1;
+    if (tit) {
+      condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`);
+      valores.push(`%${tit}%`);
+    }
 
-      if (tit) {
+    if (ref) {
+      condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`);
+      valores.push(`%${ref}%`);
+    }
 
-        const result = await pool.query(
-          `
-          SELECT *
-          FROM refacciones
-          WHERE nombreprod ILIKE $1
-          ORDER BY id DESC
-          LIMIT 100
-          `,
-          [`%${tit}%`]
-        );
+    if (modelo) {
+      condiciones.push(`LOWER(r.modelo) LIKE LOWER($${contador++})`);
+      valores.push(`%${modelo}%`);
+    }
 
-        return res.json(result.rows);
-      }
+    if (tipo) {
+      condiciones.push(`r.tipoprod = $${contador++}`);
+      valores.push(tipo);
+    }
 
-      if (ref) {
-        condiciones.push(`refinterna ILIKE $${contador++}`);
-        valores.push(`%${ref}%`);
-      }
+    if (unidad) {
+      condiciones.push(`r.unidad = $${contador++}`);
+      valores.push(unidad);
+    }
 
-      if (modelo) {
-        condiciones.push(`modelo ILIKE $${contador++}`);
-        valores.push(`%${modelo}%`);
-      }
+    if (palabras) {
+      condiciones.push(`LOWER(r.palclave) LIKE LOWER($${contador++})`);
+      valores.push(`%${palabras}%`);
+    }
 
-      if (tipo) {
-        condiciones.push(`tipoprod = $${contador++}`);
-        valores.push(tipo);
-      }
+    const where = condiciones.length
+      ? "WHERE " + condiciones.join(" AND ")
+      : "";
 
-      if (unidad) {
-        condiciones.push(`unidad = $${contador++}`);
-        valores.push(unidad);
-      }
+    const result = await pool.query(`
+      SELECT 
+        r.*,
+        COALESCE(
+          json_agg(DISTINCT t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
+          '[]'
+        ) AS tags
+      FROM refacciones r
+      LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+      LEFT JOIN tags t ON t.id = rt.tag_id
+      ${where}
+      GROUP BY r.id
+      ORDER BY r.id DESC
+      LIMIT 100
+    `, valores);
 
-      if (palabras) {
-        condiciones.push(`palclave ILIKE $${contador++}`);
-        valores.push(`%${palabras}%`);
-      }
+    res.json(result.rows);
 
-      const where = condiciones.length
-        ? "WHERE " + condiciones.join(" AND ")
-        : "";
-
-      const result = await pool.query(
-        `SELECT *
-        FROM refacciones
-        ${where}
-        ORDER BY id DESC
-        LIMIT 100`,
-        valores
-      );
-
-      res.json(result.rows);
-    });
+  } catch (error) {
+    res.status(500).json([]);
+  }
+});
     // REFACCIONES METADATA
     app.get("/refacciones-metadata", async (req, res) => {
 
