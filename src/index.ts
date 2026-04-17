@@ -1051,28 +1051,61 @@ if (!file.buffer) {
       
     });
     // REFACCIONES POR MODELO DE MAQUINA
-    app.get("/refacciones-por-maquinamod", async (req, res) => {
-      try {
-        const { maquinamod } = req.query;
+    // app.get("/refacciones-por-maquinamod", async (req, res) => {
+    //   try {
+    //     const { maquinamod } = req.query;
 
-        const { rows } = await pool.query(`
-          SELECT DISTINCT r.*
-          FROM refacciones r
-          JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
-          JOIN maquinas m ON m.id = rm.maquina_id
-          WHERE LOWER(TRIM(m.maquinamod)) = LOWER(TRIM($1))
-        `, [maquinamod]);
+    //     const { rows } = await pool.query(`
+    //       SELECT DISTINCT r.*
+    //       FROM refacciones r
+    //       JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
+    //       JOIN maquinas m ON m.id = rm.maquina_id
+    //       WHERE LOWER(TRIM(m.maquinamod)) = LOWER(TRIM($1))
+    //     `, [maquinamod]);
 
-        (log)("INFO", "Refacciones por modelo obtenidas", { cantidad: rows.length }, "/refacciones-por-maquinamod");
+    //     (log)("INFO", "Refacciones por modelo obtenidas", { cantidad: rows.length }, "/refacciones-por-maquinamod");
 
-        res.json(rows);
-      } catch (e) {
-        const error = e as Error;
-        log("ERROR", "Error capturado", { message: error.message, stack: error.stack }, "/server");
-        res.status(500).json([]);
-      }
+    //     res.json(rows);
+    //   } catch (e) {
+    //     const error = e as Error;
+    //     log("ERROR", "Error capturado", { message: error.message, stack: error.stack }, "/server");
+    //     res.status(500).json([]);
+    //   }
       
-    });
+    // });
+    app.get("/refacciones-por-maquinamod", async (req, res) => {
+  try {
+    const { maquinamod } = req.query;
+
+    const { rows } = await pool.query(`
+      SELECT 
+        r.*,
+        COALESCE(
+          json_agg(t.nombre) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) AS tags
+      FROM refacciones r
+      JOIN refaccion_maquina rm ON rm.refaccion_id = r.id
+      JOIN maquinas m ON m.id = rm.maquina_id
+      LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+      LEFT JOIN tags t ON t.id = rt.tag_id
+      WHERE LOWER(TRIM(m.maquinamod)) = LOWER(TRIM($1))
+      GROUP BY r.id
+      ORDER BY r.id ASC
+    `, [maquinamod]);
+
+    log("INFO", "Refacciones por modelo obtenidas", { cantidad: rows.length }, "/refacciones-por-maquinamod");
+
+    res.json(rows);
+
+  } catch (e) {
+    const error = e as Error;
+
+    log("ERROR", "Error capturado", { message: error.message }, "/server");
+
+    res.status(500).json([]);
+  }
+});
     // REFACCIONES CON FILTROS DE BÚSQUEDA AVANZADA
     app.get("/buscar-refacciones", async (req, res) => {
 
