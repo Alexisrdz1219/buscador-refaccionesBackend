@@ -46,7 +46,7 @@ const s3 = new AWS.S3({
                 }
     });
     //  Refacciones
-    app.get("/refacciones", async (_, res) => { const result = await pool.query( "SELECT * FROM refacciones ORDER BY id ASC" ); res.json(result.rows); });
+    // app.get("/refacciones", async (_, res) => { const result = await pool.query( "SELECT * FROM refacciones ORDER BY id ASC" ); res.json(result.rows); });
     const sleep = (ms: number) =>
     new Promise(resolve => setTimeout(resolve, ms));
     // MAPA PARA IMPORTAR DESDE ODOO, CONVIERTE NOMBRES DE COLUMNAS DE ODOO A LOS DE NUESTRA BD
