@@ -1081,7 +1081,7 @@ if (!file.buffer) {
       SELECT 
         r.*,
         COALESCE(
-          json_agg(t.nombre) FILTER (WHERE t.id IS NOT NULL),
+          json_agg(DISTINCT t.nombre) FILTER (WHERE t.id IS NOT NULL),
           '[]'
         ) AS tags
       FROM refacciones r
