@@ -331,7 +331,7 @@ app.post("/refacciones/:id/tags", async (req, res) => {
         }
 
         // 🔹 separar campos normales
-        const { compatibilidad: _c, imagenUrl: _iu, ...campos } = body;
+        const { compatibilidad: _c, imagenUrl: _iu, inputTags: _it, ...campos } = body;
 
         const nummaquina = body.nummaquina || null;
         if (nummaquina !== null) {
