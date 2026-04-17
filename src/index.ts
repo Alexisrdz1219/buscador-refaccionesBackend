@@ -113,7 +113,51 @@ app.get("/refacciones/envio", async (req, res) => {
   }
 });
 
+app.get("/refacciones", async (_, res) => {
+  const result = await pool.query(`
+    SELECT 
+      r.*,
+      COALESCE(
+        json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
+        '[]'
+      ) AS tags
+    FROM refacciones r
+    LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+    LEFT JOIN tags t ON t.id = rt.tag_id
+    GROUP BY r.id
+    ORDER BY r.id ASC
+  `);
 
+  res.json(result.rows);
+});
+
+app.post("/refacciones/:id/tags", async (req, res) => {
+  const { id } = req.params;
+  const { tags } = req.body; // ["urgente", "nuevo"]
+
+  for (const nombre of tags) {
+    // crear tag si no existe
+    const tagRes = await pool.query(
+      `INSERT INTO tags (nombre)
+       VALUES ($1)
+       ON CONFLICT (nombre) DO UPDATE SET nombre = EXCLUDED.nombre
+       RETURNING id`,
+      [nombre]
+    );
+
+    const tagId = tagRes.rows[0].id;
+
+    // relacionar
+    await pool.query(
+      `INSERT INTO refacciones_tags (refaccion_id, tag_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [id, tagId]
+    );
+  }
+
+  res.json({ ok: true });
+});
 
     // Importar Excel
     app.post("/importar-excel", upload.single("file"), async (req, res) => {
