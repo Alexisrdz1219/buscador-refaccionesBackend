@@ -818,6 +818,14 @@ insertados++;
         }
       }
     );
+
+    app.get("/test-alerta/:id", async (req, res) => {
+  const { id } = req.params;
+
+  await verificarStockBajo(Number(id));
+
+  res.json({ ok: true });
+});
     // REFACCIONES PAGINADAS, CON BUSQUEDA Y FILTRO DE STOCK
     app.get("/refacciones-paginadas", async (req, res) => {
       const page = Number(req.query.page) || 1;
