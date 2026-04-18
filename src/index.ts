@@ -259,6 +259,7 @@ app.post("/refacciones/:id/tags", async (req, res) => {
 }
     }
     );
+
     app.get("/refacciones/destacadas", async (req, res) => {
       log(
       "INFO",
@@ -558,6 +559,82 @@ if (!file.buffer) {
   }
 });
 
+export async function verificarStockBajo(refaccionId: number) {
+  try {
+
+    const { rows } = await pool.query(
+      `SELECT * FROM refacciones WHERE id = $1`,
+      [refaccionId]
+    );
+
+    const r = rows[0];
+    if (!r) return;
+
+    // 🔥 SI NO TIENE ALERTA ACTIVA → BORRAR ALERTAS
+    if (!r.alerta_activa) {
+      await pool.query(
+        `DELETE FROM alertas_stock WHERE refaccion_id = $1`,
+        [refaccionId]
+      );
+      return;
+    }
+
+    // 🔥 SI EL STOCK YA ESTÁ BIEN → BORRAR ALERTA
+    if (r.cantidad > r.stock_minimo) {
+      await pool.query(
+        `DELETE FROM alertas_stock WHERE refaccion_id = $1`,
+        [refaccionId]
+      );
+      return;
+    }
+
+    // 🔥 VERIFICAR SI YA EXISTE
+    const existente = await pool.query(
+      `SELECT * FROM alertas_stock 
+       WHERE refaccion_id = $1 AND leida = false`,
+      [refaccionId]
+    );
+
+    if (existente.rows.length > 0) return;
+
+    // 🔥 CREAR ALERTA
+    await pool.query(
+      `INSERT INTO alertas_stock (refaccion_id, mensaje)
+       VALUES ($1, $2)`,
+      [
+        refaccionId,
+        `Stock bajo: ${r.nombreprod} (Quedan ${r.cantidad})`
+      ]
+    );
+
+    console.log("⚠️ Alerta creada:", r.nombreprod);
+
+  } catch (error) {
+    console.error("Error verificando stock:", error);
+  }
+}
+
+app.get("/alertas", async (_, res) => {
+  const { rows } = await pool.query(`
+    SELECT a.*, r.nombreprod
+    FROM alertas_stock a
+    JOIN refacciones r ON r.id = a.refaccion_id
+    ORDER BY a.fecha DESC
+  `);
+
+  res.json(rows);
+});
+
+app.put("/alertas/:id/leida", async (req, res) => {
+  const { id } = req.params;
+
+  await pool.query(
+    `UPDATE alertas_stock SET leida = true WHERE id = $1`,
+    [id]
+  );
+
+  res.json({ ok: true });
+});
     // Borrar refacción POR ID
     app.delete("/refacciones/:id", async (req, res) => {
       try {
@@ -697,30 +774,34 @@ if (!file.buffer) {
                 [limpiarCantidad((data.cantidad)) || 0, palFinal, data.refInterna]
               );
               actualizados++;
+              const refaccionId = existe.rows[0].id;
+
+await verificarStockBajo(refaccionId);
 
             } else {
 
-              await pool.query(
-                `
-                INSERT INTO refacciones
-                (nombreprod, refinterna, cantidad, unidad, palclave)
-                VALUES ($1,$2,$3,$4,$5)
-                `,
-                [
-                  data.nombreProd,
-                  data.refInterna,
-                  limpiarCantidad((data.cantidad)) || 0,
-                  data.unidad,
-                  data.palClave
-                ]
-              );
+            const insert = await pool.query(
+  `
+  INSERT INTO refacciones
+  (nombreprod, refinterna, cantidad, unidad, palclave)
+  VALUES ($1,$2,$3,$4,$5)
+  RETURNING id
+  `,
+  [
+    data.nombreProd,
+    data.refInterna,
+    limpiarCantidad((data.cantidad)) || 0,
+    data.unidad,
+    data.palClave
+  ]
+);
+const refaccionId = insert.rows[0].id;
 
-              nuevos.push(data);
-              insertados++;
-            log("INFO", "Insertando nueva refacción", { refInterna: data.refInterna }, "/refacciones");
+// 🔥 ALERTA AUTOMÁTICA
+await verificarStockBajo(refaccionId);
 
-  log("INFO", "Palabras clave registradas", { palabrasClave: data.palClave }, "/refacciones");
-
+nuevos.push(data);
+insertados++;
             }
           }
 
