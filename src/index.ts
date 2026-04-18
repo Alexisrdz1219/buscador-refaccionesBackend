@@ -561,7 +561,6 @@ if (!file.buffer) {
 
 export async function verificarStockBajo(refaccionId: number) {
   try {
-
     const { rows } = await pool.query(
       `SELECT * FROM refacciones WHERE id = $1`,
       [refaccionId]
@@ -570,44 +569,53 @@ export async function verificarStockBajo(refaccionId: number) {
     const r = rows[0];
     if (!r) return;
 
-    // 🔥 SI NO TIENE ALERTA ACTIVA → BORRAR ALERTAS
-    if (!r.alerta_activa) {
-      await pool.query(
-        `DELETE FROM alertas_stock WHERE refaccion_id = $1`,
-        [refaccionId]
-      );
-      return;
-    }
+    if (!r.alerta_activa) return;
 
-    // 🔥 SI EL STOCK YA ESTÁ BIEN → BORRAR ALERTA
-    if (r.cantidad > r.stock_minimo) {
-      await pool.query(
-        `DELETE FROM alertas_stock WHERE refaccion_id = $1`,
-        [refaccionId]
-      );
-      return;
-    }
+    const esBajo = r.cantidad <= r.stock_minimo;
 
-    // 🔥 VERIFICAR SI YA EXISTE
-    const existente = await pool.query(
+    // 🔍 Buscar última alerta
+    const ultima = await pool.query(
       `SELECT * FROM alertas_stock 
-       WHERE refaccion_id = $1 AND leida = false`,
+       WHERE refaccion_id = $1
+       ORDER BY fecha DESC
+       LIMIT 1`,
       [refaccionId]
     );
 
-    if (existente.rows.length > 0) return;
+    const ultimaAlerta = ultima.rows[0];
 
-    // 🔥 CREAR ALERTA
-    await pool.query(
-      `INSERT INTO alertas_stock (refaccion_id, mensaje)
-       VALUES ($1, $2)`,
-      [
-        refaccionId,
-        `Stock bajo: ${r.nombreprod} (Quedan ${r.cantidad})`
-      ]
-    );
+    // 🟢 CASO: stock volvió a normal
+    if (!esBajo) {
+      await pool.query(
+        `UPDATE alertas_stock 
+         SET leida = true 
+         WHERE refaccion_id = $1 AND leida = false`,
+        [refaccionId]
+      );
+      return;
+    }
 
-    console.log("⚠️ Alerta creada:", r.nombreprod);
+    // 🔴 CASO: stock bajo
+    if (esBajo) {
+      // Si ya hay una activa → no duplicar
+      const existeNoLeida = await pool.query(
+        `SELECT 1 FROM alertas_stock 
+         WHERE refaccion_id = $1 AND leida = false`,
+        [refaccionId]
+      );
+
+      if (existeNoLeida.rows.length > 0) return;
+
+      // Crear nueva alerta
+      await pool.query(
+        `INSERT INTO alertas_stock (refaccion_id, mensaje)
+         VALUES ($1, $2)`,
+        [
+          refaccionId,
+          `Stock bajo: ${r.nombreprod} (Quedan ${r.cantidad})`
+        ]
+      );
+    }
 
   } catch (error) {
     console.error("Error verificando stock:", error);
