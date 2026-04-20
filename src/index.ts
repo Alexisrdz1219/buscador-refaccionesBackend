@@ -449,13 +449,25 @@ campos.imagen = result.Location;
         res.json({ ok: true });
 
       } catch (e) {
-        const error = e as Error;
-          log("ERROR", "Error capturado", { message: error.message, stack: error.stack }, "/server");
-        res.status(500).json({
-      ok: false,
-      error: error.message
-    });
-      }
+  const error = e as Error;
+
+  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
+  console.error("❌ ERROR REAL:");
+  console.error("Mensaje:", error.message);
+  console.error("Stack:", error.stack);
+
+  // 📝 Guardar en tu sistema de logs
+  log("ERROR", "Error capturado", {
+    message: error.message,
+    stack: error.stack
+  }, "/server");
+
+  // 📡 Respuesta al frontend
+  res.status(500).json({
+    ok: false,
+    error: error.message
+  });
+}
     });
 
 app.post("/upload-masivo", upload.array("imagenes"), async (req, res) => {
@@ -912,10 +924,26 @@ insertados++;
           limit
         });
 
-      } catch (err) {
-        log("ERROR", "Error capturado", { error: err }, "/server");
-        res.status(500).json({ ok: false });
-      }
+      } catch (e) {
+  const error = e as Error;
+
+  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
+  console.error("❌ ERROR REAL:");
+  console.error("Mensaje:", error.message);
+  console.error("Stack:", error.stack);
+
+  // 📝 Guardar en tu sistema de logs
+  log("ERROR", "Error capturado", {
+    message: error.message,
+    stack: error.stack
+  }, "/server");
+
+  // 📡 Respuesta al frontend
+  res.status(500).json({
+    ok: false,
+    error: error.message
+  });
+}
     });
     // OPCIONES PARA FILTRAR MAQUINAS
     app.get("/opciones/categorias", (_req, res) => {
@@ -1187,9 +1215,25 @@ insertados++;
   log("INFO", "Maquina ID recibido", { maquinaId: id }, "/maquinas");
         res.json(rows);
       } catch (e) {
-        log("ERROR", "Error capturado", { error: e }, "/server");
-        res.status(500).json([]);
-      }
+  const error = e as Error;
+
+  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
+  console.error("❌ ERROR REAL:");
+  console.error("Mensaje:", error.message);
+  console.error("Stack:", error.stack);
+
+  // 📝 Guardar en tu sistema de logs
+  log("ERROR", "Error capturado", {
+    message: error.message,
+    stack: error.stack
+  }, "/server");
+
+  // 📡 Respuesta al frontend
+  res.status(500).json({
+    ok: false,
+    error: error.message
+  });
+}
       
     });
     // REFACCIONES POR MODELO DE MAQUINA
@@ -1241,12 +1285,25 @@ insertados++;
     res.json(rows);
 
   } catch (e) {
-    const error = e as Error;
+  const error = e as Error;
 
-    log("ERROR", "Error capturado", { message: error.message }, "/server");
+  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
+  console.error("❌ ERROR REAL:");
+  console.error("Mensaje:", error.message);
+  console.error("Stack:", error.stack);
 
-    res.status(500).json([]);
-  }
+  // 📝 Guardar en tu sistema de logs
+  log("ERROR", "Error capturado", {
+    message: error.message,
+    stack: error.stack
+  }, "/server");
+
+  // 📡 Respuesta al frontend
+  res.status(500).json({
+    ok: false,
+    error: error.message
+  });
+}
 });
     // REFACCIONES CON FILTROS DE BÚSQUEDA AVANZADA
     // app.get("/buscar-refacciones", async (req, res) => {
@@ -1751,10 +1808,26 @@ import { Request, Response, NextFunction } from "express";
           nombre: usuario.nombre,
           rol: usuario.rol
         });
-      } catch (err) {
-        log("ERROR", "Error capturado", { error: err }, "/server");
-        res.status(500).json({ error: "Error al obtener usuario" });
-      }
+      } catch (e) {
+  const error = e as Error;
+
+  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
+  console.error("❌ ERROR REAL:");
+  console.error("Mensaje:", error.message);
+  console.error("Stack:", error.stack);
+
+  // 📝 Guardar en tu sistema de logs
+  log("ERROR", "Error capturado", {
+    message: error.message,
+    stack: error.stack
+  }, "/server");
+
+  // 📡 Respuesta al frontend
+  res.status(500).json({
+    ok: false,
+    error: error.message
+  });
+}
     });
     // SESIONES
     app.get("/sesiones", verificarSesion, permitirRoles("admin"), async (req, res) => {
@@ -1798,10 +1871,26 @@ import { Request, Response, NextFunction } from "express";
 
       res.json(result.rows[0]);
 
-    } catch (error) {
-      log("ERROR", "Error capturado", { error }, "/server");
-      res.status(500).json({ error: "Error" });
-    }
+    } catch (e) {
+  const error = e as Error;
+
+  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
+  console.error("❌ ERROR REAL:");
+  console.error("Mensaje:", error.message);
+  console.error("Stack:", error.stack);
+
+  // 📝 Guardar en tu sistema de logs
+  log("ERROR", "Error capturado", {
+    message: error.message,
+    stack: error.stack
+  }, "/server");
+
+  // 📡 Respuesta al frontend
+  res.status(500).json({
+    ok: false,
+    error: error.message
+  });
+}
     });
     // MASSSSSSSS
     app.delete("/refacciones/:id/imagen", async (req, res) => {
@@ -1854,16 +1943,25 @@ import { Request, Response, NextFunction } from "express";
         res.json({ ok: true });
 
       } catch (e) {
-        const error = e as Error;
-        log(
-          "ERROR",
-          "Error capturado",
-          { message: error.message, stack: error.stack },
-          "/server"
-        );
+  const error = e as Error;
 
-        res.status(500).json({ ok: false });
-      }
+  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
+  console.error("❌ ERROR REAL:");
+  console.error("Mensaje:", error.message);
+  console.error("Stack:", error.stack);
+
+  // 📝 Guardar en tu sistema de logs
+  log("ERROR", "Error capturado", {
+    message: error.message,
+    stack: error.stack
+  }, "/server");
+
+  // 📡 Respuesta al frontend
+  res.status(500).json({
+    ok: false,
+    error: error.message
+  });
+}
     });
     // PUT: Cambiar el estado (Toggle)
     app.put("/refacciones/:id/broadcast", async (req, res) => {
