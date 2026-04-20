@@ -344,6 +344,23 @@ app.post("/refacciones/:id/tags", async (req, res) => {
         // 🔹 separar campos normales
         const { compatibilidad: _c, imagenUrl: _iu, inputTags: _it, ...campos } = body;
 
+        // 🔥 NORMALIZAR ALERTA
+if (campos.alerta_activa !== undefined) {
+  campos.alerta_activa = campos.alerta_activa === "true";
+}
+
+if (campos.stock_minimo !== undefined) {
+  campos.stock_minimo = Number(campos.stock_minimo) || 0;
+}
+// 🚨 VALIDACIÓN
+if (campos.stock_minimo < 0) {
+  return res.status(400).json({
+    ok: false,
+    error: "El stock mínimo no puede ser negativo"
+  });
+}
+
+
         const nummaquina = body.nummaquina || null;
         if (nummaquina !== null) {
           campos.nummaquina = nummaquina;
