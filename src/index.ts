@@ -737,127 +737,263 @@ await verificarStockBajo(Number(id));
       return Math.floor(num); // ⬅️ redondea hacia abajo
     }
     // IMPORTAR DESDE ODOO, ACTUALIZA CANTIDAD Y PALABRAS CLAVE
-    app.post(
-      "/importar-odoo",
-      upload.single("file"),
-      async (req, res) => {
-        try {
-          const workbook = XLSX.read(req.file!.buffer);
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+//     app.post(
+//       "/importar-odoo",
+//       upload.single("file"),
+//       async (req, res) => {
+//         try {
+//           const workbook = XLSX.read(req.file!.buffer);
+//           const sheet = workbook.Sheets[workbook.SheetNames[0]];
+//           const rows: any[] = XLSX.utils.sheet_to_json(sheet);
 
-          let insertados = 0;
-          let actualizados = 0;
-          const nuevos: any[] = [];
+//           let insertados = 0;
+//           let actualizados = 0;
+//           const nuevos: any[] = [];
 
-          for (const row of rows) {
+//           for (const row of rows) {
 
-            // Convertimos columnas Odoo → BD
-            const data: any = {};
+//             // Convertimos columnas Odoo → BD
+//             const data: any = {};
 
-            for (const colOdoo in mapOdoo) {
-              const colBD = mapOdoo[colOdoo];
-              data[colBD] = row[colOdoo];
-            }
+//             for (const colOdoo in mapOdoo) {
+//               const colBD = mapOdoo[colOdoo];
+//               data[colBD] = row[colOdoo];
+//             }
 
-            if (!data.refInterna) continue;
+//             if (!data.refInterna) continue;
 
-            const existe = await pool.query(
-              "SELECT id FROM refacciones WHERE refinterna = $1",
-              [data.refInterna]
-            );
+//             const existe = await pool.query(
+//               "SELECT id FROM refacciones WHERE refinterna = $1",
+//               [data.refInterna]
+//             );
 
-            if (existe.rows.length > 0) {
+//             if (existe.rows.length > 0) {
 
-              // 1️⃣ Obtener palabras actuales
-      const actual = await pool.query(
-      "SELECT palclave FROM refacciones WHERE refinterna = $1",
-      [data.refInterna]
-    );
+//               // 1️⃣ Obtener palabras actuales
+//       const actual = await pool.query(
+//       "SELECT palclave FROM refacciones WHERE refinterna = $1",
+//       [data.refInterna]
+//     );
 
-      const palActual = actual.rows[0]?.palclave || "";
-    const palNuevaRaw = data.palClave || "";
+//       const palActual = actual.rows[0]?.palclave || "";
+//     const palNuevaRaw = data.palClave || "";
 
-    function procesarPalabras(texto: string) {
-      return texto
-        .replace(/"/g, "")              // quitar comillas
-        .replace(/;/g, ",")             // convertir ; en ,
-        .split(",")                     // separar por coma
-        .map(p => p.trim().toLowerCase())
-        .filter(Boolean);
-    }
+//     function procesarPalabras(texto: string) {
+//       return texto
+//         .replace(/"/g, "")              // quitar comillas
+//         .replace(/;/g, ",")             // convertir ; en ,
+//         .split(",")                     // separar por coma
+//         .map(p => p.trim().toLowerCase())
+//         .filter(Boolean);
+//     }
 
-      const arrActual = procesarPalabras(palActual);
-    const arrNueva = procesarPalabras(palNuevaRaw);
+//       const arrActual = procesarPalabras(palActual);
+//     const arrNueva = procesarPalabras(palNuevaRaw);
 
-      const merged = [...new Set([...arrActual, ...arrNueva])];
+//       const merged = [...new Set([...arrActual, ...arrNueva])];
 
-    const palFinal = merged.join(", ");
+//     const palFinal = merged.join(", ");
 
-  log("INFO", "Datos actuales cargados", { cantidad: arrActual.length }, "/excel-merge");
+//   // log("INFO", "Datos actuales cargados", { cantidad: arrActual.length }, "/excel-merge");
 
-  log("INFO", "Datos recibidos desde Excel", { cantidad: arrNueva.length }, "/excel-merge");
+//   // log("INFO", "Datos recibidos desde Excel", { cantidad: arrNueva.length }, "/excel-merge");
 
-  log("INFO", "Resultado final de mezcla", { cantidad: merged.length }, "/excel-merge");
+//   // log("INFO", "Resultado final de mezcla", { cantidad: merged.length }, "/excel-merge");
 
-              await pool.query(
-                "UPDATE refacciones SET cantidad = $1, palclave = $2 WHERE refinterna = $3",
-                [limpiarCantidad((data.cantidad)) || 0, palFinal, data.refInterna]
-              );
-              actualizados++;
-              const refaccionId = existe.rows[0].id;
+//               await pool.query(
+//                 "UPDATE refacciones SET cantidad = $1, palclave = $2 WHERE refinterna = $3",
+//                 [limpiarCantidad((data.cantidad)) || 0, palFinal, data.refInterna]
+//               );
+//               actualizados++;
+//               const refaccionId = existe.rows[0].id;
 
-// await verificarStockBajo(refaccionId);
+// // await verificarStockBajo(refaccionId);
 
-            } else {
+//             } else {
 
-            const insert = await pool.query(
-  `
-  INSERT INTO refacciones
-  (nombreprod, refinterna, cantidad, unidad, palclave)
-  VALUES ($1,$2,$3,$4,$5)
-  RETURNING id
-  `,
-  [
-    data.nombreProd,
-    data.refInterna,
-    limpiarCantidad((data.cantidad)) || 0,
-    data.unidad,
-    data.palClave
-  ]
-);
-const refaccionId = insert.rows[0].id;
+//             const insert = await pool.query(
+//   `
+//   INSERT INTO refacciones
+//   (nombreprod, refinterna, cantidad, unidad, palclave)
+//   VALUES ($1,$2,$3,$4,$5)
+//   RETURNING id
+//   `,
+//   [
+//     data.nombreProd,
+//     data.refInterna,
+//     limpiarCantidad((data.cantidad)) || 0,
+//     data.unidad,
+//     data.palClave
+//   ]
+// );
+// const refaccionId = insert.rows[0].id;
 
-// 🔥 ALERTA AUTOMÁTICA
-// await verificarStockBajo(refaccionId);
+// // 🔥 ALERTA AUTOMÁTICA
+// // await verificarStockBajo(refaccionId);
 
-nuevos.push(data);
-insertados++;
-            }
+// nuevos.push(data);
+// insertados++;
+//             }
+//           }
+
+//           res.json({
+//             ok: true,
+//             insertados,
+//             actualizados,
+//             nuevos
+//           });
+
+//         } catch (error) {
+//   const err = error as Error;
+
+//   console.log("❌ ERROR REAL:", err.message);
+//   console.log("STACK:", err.stack);
+
+//   log("ERROR", "Error capturado", {
+//     message: err.message,
+//     stack: err.stack
+//   }, "/server");
+
+//   res.status(500).json({ ok: false, error: err.message });
+// }
+//       }
+//     );
+app.post(
+  "/importar-odoo",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const workbook = XLSX.read(req.file!.buffer);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+
+      let insertados = 0;
+      let actualizados = 0;
+      const nuevos: any[] = [];
+
+      for (const row of rows) {
+
+        // 🔄 Mapear columnas
+        const data: any = {};
+        for (const colOdoo in mapOdoo) {
+          const colBD = mapOdoo[colOdoo];
+          data[colBD] = row[colOdoo];
+        }
+
+        if (!data.refInterna) continue;
+
+        const existe = await pool.query(
+          "SELECT id FROM refacciones WHERE refinterna = $1",
+          [data.refInterna]
+        );
+
+        // =========================
+        // 🔄 UPDATE
+        // =========================
+        if (existe.rows.length > 0) {
+
+          const refaccionId = existe.rows[0].id;
+
+          // 🔹 Obtener palabras actuales
+          const actual = await pool.query(
+            "SELECT palclave FROM refacciones WHERE refinterna = $1",
+            [data.refInterna]
+          );
+
+          const palActual = actual.rows[0]?.palclave || "";
+          const palNuevaRaw = data.palClave || "";
+
+          function procesarPalabras(texto: string) {
+            return texto
+              .replace(/"/g, "")
+              .replace(/;/g, ",")
+              .split(",")
+              .map(p => p.trim().toLowerCase())
+              .filter(Boolean);
           }
 
-          res.json({
-            ok: true,
-            insertados,
-            actualizados,
-            nuevos
-          });
+          const arrActual = procesarPalabras(palActual);
+          const arrNueva = procesarPalabras(palNuevaRaw);
 
-        } catch (error) {
-  const err = error as Error;
+          const merged = [...new Set([...arrActual, ...arrNueva])];
+          const palFinal = merged.join(", ");
 
-  console.log("❌ ERROR REAL:", err.message);
-  console.log("STACK:", err.stack);
+          // 🔥 UPDATE CON RETURNING
+          const update = await pool.query(
+            `
+            UPDATE refacciones 
+            SET cantidad = $1, palclave = $2 
+            WHERE refinterna = $3
+            RETURNING id
+            `,
+            [
+              limpiarCantidad(data.cantidad) || 0,
+              palFinal,
+              data.refInterna
+            ]
+          );
 
-  log("ERROR", "Error capturado", {
-    message: err.message,
-    stack: err.stack
-  }, "/server");
+          actualizados++;
 
-  res.status(500).json({ ok: false, error: err.message });
-}
+          // 🔥 ALERTA AQUÍ
+          await verificarStockBajo(update.rows[0].id);
+
+        } 
+        
+        // =========================
+        // 🆕 INSERT
+        // =========================
+        else {
+
+          const insert = await pool.query(
+            `
+            INSERT INTO refacciones
+            (nombreprod, refinterna, cantidad, unidad, palclave)
+            VALUES ($1,$2,$3,$4,$5)
+            RETURNING id
+            `,
+            [
+              data.nombreProd,
+              data.refInterna,
+              limpiarCantidad(data.cantidad) || 0,
+              data.unidad,
+              data.palClave
+            ]
+          );
+
+          const refaccionId = insert.rows[0].id;
+
+          // 🔥 ALERTA TAMBIÉN EN NUEVOS
+          await verificarStockBajo(refaccionId);
+
+          nuevos.push(data);
+          insertados++;
+        }
       }
-    );
+
+      res.json({
+        ok: true,
+        insertados,
+        actualizados,
+        nuevos
+      });
+
+    } catch (error) {
+      const err = error as Error;
+
+      console.log("❌ ERROR REAL:", err.message);
+      console.log("STACK:", err.stack);
+
+      log("ERROR", "Error capturado", {
+        message: err.message,
+        stack: err.stack
+      }, "/server");
+
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  }
+);
+
 
     app.get("/test-alerta/:id", async (req, res) => {
   const { id } = req.params;
