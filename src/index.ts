@@ -646,9 +646,18 @@ app.put("/alertas/:id/leida", async (req, res) => {
 
         res.json({ ok: true });
       } catch (error) {
-        log("ERROR", "Error capturado", { error: error }, "/server");
-        res.status(500).json({ ok: false });
-      }
+  const err = error as Error;
+
+  console.log("❌ ERROR REAL:", err.message);
+  console.log("STACK:", err.stack);
+
+  log("ERROR", "Error capturado", {
+    message: err.message,
+    stack: err.stack
+  }, "/server");
+
+  res.status(500).json({ ok: false, error: err.message });
+}
     });
     // PREVIEW EXCEL NO FUNCIONA
     app.post(
@@ -689,9 +698,18 @@ app.put("/alertas/:id/leida", async (req, res) => {
           });
 
         } catch (error) {
-          log("ERROR", "Error capturado", { error: error }, "/server");
-          res.status(500).json({ ok: false });
-        }
+  const err = error as Error;
+
+  console.log("❌ ERROR REAL:", err.message);
+  console.log("STACK:", err.stack);
+
+  log("ERROR", "Error capturado", {
+    message: err.message,
+    stack: err.stack
+  }, "/server");
+
+  res.status(500).json({ ok: false, error: err.message });
+}
       }
     );
     // LIMPIAR CANTIDAD
@@ -812,9 +830,18 @@ insertados++;
           });
 
         } catch (error) {
-          log("ERROR", "Error capturado", { error: error }, "/server");
-          res.status(500).json({ ok: false });
-        }
+  const err = error as Error;
+
+  console.log("❌ ERROR REAL:", err.message);
+  console.log("STACK:", err.stack);
+
+  log("ERROR", "Error capturado", {
+    message: err.message,
+    stack: err.stack
+  }, "/server");
+
+  res.status(500).json({ ok: false, error: err.message });
+}
       }
     );
 
@@ -998,9 +1025,18 @@ insertados++;
 
         res.json(result.rows);
       } catch (error) {
-        log("ERROR", "Error capturado", { error: error }, "/server");
-        res.status(500).json({ ok: false });
-      }
+  const err = error as Error;
+
+  console.log("❌ ERROR REAL:", err.message);
+  console.log("STACK:", err.stack);
+
+  log("ERROR", "Error capturado", {
+    message: err.message,
+    stack: err.stack
+  }, "/server");
+
+  res.status(500).json({ ok: false, error: err.message });
+}
     });
     // REFACCIONES COMPATIBLES
     app.post("/refacciones/:id/compatibles", async (req, res) => {
@@ -1022,9 +1058,18 @@ insertados++;
 
         res.json({ ok: true });
       } catch (error) {
-        log("ERROR", "Error capturado", { error: error }, "/server");
-        res.status(500).json({ ok: false });
-      }
+  const err = error as Error;
+
+  console.log("❌ ERROR REAL:", err.message);
+  console.log("STACK:", err.stack);
+
+  log("ERROR", "Error capturado", {
+    message: err.message,
+    stack: err.stack
+  }, "/server");
+
+  res.status(500).json({ ok: false, error: err.message });
+}
     });
     // ---
     app.get("/refacciones/:id/compatibles", async (req, res) => {
@@ -1079,9 +1124,18 @@ insertados++;
 
         res.json(refaccion);
       } catch (error) {
-        log("ERROR", "Error capturado", { error: error }, "/server");
-        res.status(500).json({ ok: false });
-      }
+  const err = error as Error;
+
+  console.log("❌ ERROR REAL:", err.message);
+  console.log("STACK:", err.stack);
+
+  log("ERROR", "Error capturado", {
+    message: err.message,
+    stack: err.stack
+  }, "/server");
+
+  res.status(500).json({ ok: false, error: err.message });
+}
     });
     // LISTA DE MAQUINAS ORDENADAS POR CATEGORIA PRINCIPAL Y MODELO
     app.get("/maquinas", async (req, res) => {
