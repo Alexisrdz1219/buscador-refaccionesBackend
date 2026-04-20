@@ -487,11 +487,14 @@ await verificarStockBajo(Number(id));
 }
     });
 
-    app.delete("/alertas/:id", async (req, res) => {
+   app.delete("/alertas/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    await pool.query("DELETE FROM alertas WHERE id = $1", [id]);
+    await pool.query(
+      "DELETE FROM alertas_stock WHERE id = $1",
+      [id]
+    );
 
     res.json({ message: "Alerta eliminada" });
   } catch (error) {
