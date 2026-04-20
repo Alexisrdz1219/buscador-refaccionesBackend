@@ -445,7 +445,7 @@ campos.imagen = result.Location;
             [id, mid]
           );
         }
-
+await verificarStockBajo(Number(id));
         res.json({ ok: true });
 
       } catch (e) {
@@ -643,7 +643,7 @@ app.put("/alertas/:id/leida", async (req, res) => {
     `UPDATE alertas_stock SET leida = true WHERE id = $1`,
     [id]
   );
-
+await verificarStockBajo(Number(id));
   res.json({ ok: true });
 });
     // Borrar refacción POR ID
@@ -655,7 +655,7 @@ app.put("/alertas/:id/leida", async (req, res) => {
           "DELETE FROM refacciones WHERE id = $1",
           [id]
         );
-
+await verificarStockBajo(Number(id));
         res.json({ ok: true });
       } catch (error) {
   const err = error as Error;
@@ -671,6 +671,7 @@ app.put("/alertas/:id/leida", async (req, res) => {
   res.status(500).json({ ok: false, error: err.message });
 }
     });
+    
     // PREVIEW EXCEL NO FUNCIONA
     app.post(
       "/preview-excel",
