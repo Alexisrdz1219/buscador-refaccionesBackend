@@ -805,7 +805,7 @@ app.put("/alertas/:id/leida", async (req, res) => {
               actualizados++;
               const refaccionId = existe.rows[0].id;
 
-await verificarStockBajo(refaccionId);
+// await verificarStockBajo(refaccionId);
 
             } else {
 
@@ -827,7 +827,7 @@ await verificarStockBajo(refaccionId);
 const refaccionId = insert.rows[0].id;
 
 // 🔥 ALERTA AUTOMÁTICA
-await verificarStockBajo(refaccionId);
+// await verificarStockBajo(refaccionId);
 
 nuevos.push(data);
 insertados++;
