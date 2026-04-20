@@ -487,6 +487,19 @@ await verificarStockBajo(Number(id));
 }
     });
 
+    app.delete("/alertas/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM alertas WHERE id = $1", [id]);
+
+    res.json({ message: "Alerta eliminada" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al eliminar" });
+  }
+});
+
 app.post("/upload-masivo", upload.array("imagenes"), async (req, res) => {
   const resultados = [];
   let ok = 0;
