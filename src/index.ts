@@ -588,19 +588,20 @@ export async function verificarStockBajo(refaccionId: number) {
     const estadoAnterior = r.ultimo_estado_stock || "OK";
 
     // 🧠 SOLO reaccionar si hubo cambio
-    if (estadoActual === estadoAnterior) return;
+   // Solo evita spam si está en OK
+if (estadoActual === "OK" && estadoAnterior === "OK") return;
 
     // 🔴 CAMBIO: OK → BAJO
     if (estadoActual === "BAJO") {
-      await pool.query(
-        `INSERT INTO alertas_stock (refaccion_id, mensaje)
-         VALUES ($1, $2)`,
-        [
-          refaccionId,
-          `Stock bajo: ${r.nombreprod} (Quedan ${r.cantidad})`
-        ]
-      );
-    }
+  await pool.query(
+    `INSERT INTO alertas_stock (refaccion_id, mensaje)
+     VALUES ($1, $2)`,
+    [
+      refaccionId,
+      `Stock bajo: ${r.nombreprod} (Quedan ${r.cantidad})`
+    ]
+  );
+}
 
     // 🟢 CAMBIO: BAJO → OK
     if (estadoActual === "OK") {
