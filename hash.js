@@ -30,3 +30,10 @@
 //   'personal',
 //   true
 // );
+//  codgios de verificacion en vercel por si pierdo el celular
+// eafa1d14-b50d5e20
+// 8736dff7-2a92f36b
+// 4f620928-d16ed18e
+// db4e121a-41a89b1e
+// f47afebc-1b2b9ac9
+// f1bbec8a-c6a60c31

@@ -561,6 +561,7 @@ if (!file.buffer) {
 
 export async function verificarStockBajo(refaccionId: number) {
   try {
+
     const { rows } = await pool.query(
       `SELECT * FROM refacciones WHERE id = $1`,
       [refaccionId]
@@ -571,42 +572,14 @@ export async function verificarStockBajo(refaccionId: number) {
 
     if (!r.alerta_activa) return;
 
-    const esBajo = r.cantidad <= r.stock_minimo;
+    const estadoActual = r.cantidad <= r.stock_minimo ? "BAJO" : "OK";
+    const estadoAnterior = r.ultimo_estado_stock || "OK";
 
-    // 🔍 Buscar última alerta
-    const ultima = await pool.query(
-      `SELECT * FROM alertas_stock 
-       WHERE refaccion_id = $1
-       ORDER BY fecha DESC
-       LIMIT 1`,
-      [refaccionId]
-    );
+    // 🧠 SOLO reaccionar si hubo cambio
+    if (estadoActual === estadoAnterior) return;
 
-    const ultimaAlerta = ultima.rows[0];
-
-    // 🟢 CASO: stock volvió a normal
-    if (!esBajo) {
-      await pool.query(
-        `UPDATE alertas_stock 
-         SET leida = true 
-         WHERE refaccion_id = $1 AND leida = false`,
-        [refaccionId]
-      );
-      return;
-    }
-
-    // 🔴 CASO: stock bajo
-    if (esBajo) {
-      // Si ya hay una activa → no duplicar
-      const existeNoLeida = await pool.query(
-        `SELECT 1 FROM alertas_stock 
-         WHERE refaccion_id = $1 AND leida = false`,
-        [refaccionId]
-      );
-
-      if (existeNoLeida.rows.length > 0) return;
-
-      // Crear nueva alerta
+    // 🔴 CAMBIO: OK → BAJO
+    if (estadoActual === "BAJO") {
       await pool.query(
         `INSERT INTO alertas_stock (refaccion_id, mensaje)
          VALUES ($1, $2)`,
@@ -616,6 +589,24 @@ export async function verificarStockBajo(refaccionId: number) {
         ]
       );
     }
+
+    // 🟢 CAMBIO: BAJO → OK
+    if (estadoActual === "OK") {
+      await pool.query(
+        `UPDATE alertas_stock 
+         SET leida = true 
+         WHERE refaccion_id = $1 AND leida = false`,
+        [refaccionId]
+      );
+    }
+
+    // 🔥 Guardar nuevo estado
+    await pool.query(
+      `UPDATE refacciones 
+       SET ultimo_estado_stock = $1 
+       WHERE id = $2`,
+      [estadoActual, refaccionId]
+    );
 
   } catch (error) {
     console.error("Error verificando stock:", error);
