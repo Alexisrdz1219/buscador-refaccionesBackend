@@ -274,54 +274,52 @@ app.post("/refacciones/:id/tags", async (req, res) => {
     }
     );
 
-    app.get("/refacciones/destacadas", async (req, res) => {
-      log(
-      "INFO",
-      "Intento de carga de destacadas",
-      req,
-      {
-        accion: "ver_destacadas"
-      },
-      "/destacadas"
-    );
-      try {
-        // 1. Verificamos si el pool existe
-        if (!pool) {
-          log("ERROR", "Error: el pool de conexión no está definido", {
-      contexto: "Intento de consulta a PostgreSQL sin pool activo"
-    }, "/database");
-          return res.status(500).json({ ok: false, error: "No hay conexión a DB" });
-        }
+   app.get("/refacciones/destacadas", async (req, res) => {
 
-        // 2. Ejecutamos la consulta con un nombre de columna que ya vimos que existe
-        const result = await pool.query(
-          'SELECT id, nombreprod, modelo, ubicacion, destacada FROM refacciones WHERE destacada = true'
-        ); 
-        
-      log("INFO", "Refacciones destacadas encontradas", { total: result.rowCount }, "/destacadas");
-        
-        // 3. Enviamos los datos directamente
-        res.json(result.rows);
+  const inicio = Date.now();
 
-      } catch (err) {
+  try {
 
-      const error = err as any;
-
-      log("ERROR", "Error SQL en consulta", {
-        message: error.message,
-        code: error.code,
-        detail: error.detail,
-        hint: error.hint
+    if (!pool) {
+      log("ERROR", "Pool no disponible", {
+        contexto: "Consulta sin conexión"
       }, "/database");
 
-      res.status(500).json({
-        ok: false,
-        error: "Error interno",
-        message: error.message
-      });
-
+      return res.status(500).json({ ok: false });
     }
+
+    const result = await pool.query(`
+      SELECT id, nombreprod, modelo, ubicacion
+      FROM refacciones
+      WHERE destacada = true
+      LIMIT 20
+    `);
+
+    const duracion = Date.now() - inicio;
+
+    // 🔥 LOG INTELIGENTE
+    if (result.rowCount === 0 || duracion > 300) {
+      log("INFO", "Consulta destacadas", {
+        total: result.rowCount,
+        tiempo: `${duracion}ms`
+      }, "/destacadas");
+    }
+
+    res.json({
+      ok: true,
+      data: result.rows
     });
+
+  } catch (err: any) {
+
+    log("ERROR", "Error SQL destacadas", {
+      message: err.message,
+      code: err.code
+    }, "/database");
+
+    res.status(500).json({ ok: false });
+  }
+});
 
 
     app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
