@@ -10,15 +10,15 @@ import sharp from "sharp";
 // import { createClient } from "@supabase/supabase-js";
 
 // const supabase = createClient( process.env.SUPABASE_URL!, process.env.SUPABASE_KEY! );
-const upload = multer({ storage: multer.memoryStorage() });
+  const upload = multer({ storage: multer.memoryStorage() });
 
   import AWS from "aws-sdk";
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY,
-  secretAccessKey: process.env.AWS_SECRET_KEY,
-  region: process.env.AWS_REGION
-});
+  const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_KEY,
+    region: process.env.AWS_REGION
+  });
 
 // console.log("DB:", process.env.DB_NAME);
 // console.log("AWS:", process.env.AWS_ACCESS_KEY);
@@ -52,6 +52,8 @@ const s3 = new AWS.S3({
     // MAPA PARA IMPORTAR DESDE ODOO, CONVIERTE NOMBRES DE COLUMNAS DE ODOO A LOS DE NUESTRA BD
     const mapOdoo: any = { "Referencia interna": "refInterna", "Cantidad a la mano": "cantidad", "Unidad de medida": "unidad", "Nombre": "nombreProd", "Etiquetas de la plantilla del producto": "palClave" };
     // Pagina para saber cuantas refacciones tiene ubicación asignada
+
+    // Con este Get es el que manda todos los datos de la pagina con ubicacion, en el frontend
     app.get("/refacciones/con-ubicacion", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 5000;
@@ -79,20 +81,29 @@ const s3 = new AWS.S3({
       error: "Error al consultar la base"
     });
   }
-});
+    });
 
     app.get("/logs-db", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM logs ORDER BY created_at DESC LIMIT 50"
-    );
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = parseInt(req.query.offset as string) || 0;
 
-    res.json(result.rows);
+    const result = await pool.query(`
+      SELECT id, level, message, created_at
+      FROM logs
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+
+    res.json({
+      ok: true,
+      data: result.rows
+    });
 
   } catch (error) {
-    res.status(500).json({ ok:false });
+    res.status(500).json({ ok: false });
   }
-});
+    });
 
 
 app.get("/refacciones/envio", async (req, res) => {
