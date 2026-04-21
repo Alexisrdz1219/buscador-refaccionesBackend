@@ -53,30 +53,33 @@ const s3 = new AWS.S3({
     const mapOdoo: any = { "Referencia interna": "refInterna", "Cantidad a la mano": "cantidad", "Unidad de medida": "unidad", "Nombre": "nombreProd", "Etiquetas de la plantilla del producto": "palClave" };
     // Pagina para saber cuantas refacciones tiene ubicación asignada
     app.get("/refacciones/con-ubicacion", async (req, res) => {
-    try {
-      const result = await pool.query(`
-        SELECT *
-        FROM refacciones
-        WHERE ubicacion IS NOT NULL
-        AND TRIM(ubicacion) <> ''
-      `);
+  try {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = parseInt(req.query.offset as string) || 0;
 
-      return res.json({
-        ok: true,
-        data: result.rows
-      });
+    const result = await pool.query(`
+      SELECT id, nombreprod, modelo, ubicacion, imagen
+      FROM refacciones
+      WHERE ubicacion IS NOT NULL
+      AND ubicacion <> ''
+      ORDER BY id DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
 
-    } catch (error) {
-
- console.log("INFO:", error);
-
-  return res.status(500).json({
-    ok: false,
-    error: "Error al consultar la base"
-  });
-
-}
+    return res.json({
+      ok: true,
+      data: result.rows
     });
+
+  } catch (error) {
+    console.log("INFO:", error);
+
+    return res.status(500).json({
+      ok: false,
+      error: "Error al consultar la base"
+    });
+  }
+});
 
     app.get("/logs-db", async (req, res) => {
   try {
