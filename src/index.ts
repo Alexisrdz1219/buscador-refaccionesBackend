@@ -54,11 +54,11 @@ const s3 = new AWS.S3({
     // Pagina para saber cuantas refacciones tiene ubicación asignada
     app.get("/refacciones/con-ubicacion", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = parseInt(req.query.limit as string) || 5000;
     const offset = parseInt(req.query.offset as string) || 0;
 
     const result = await pool.query(`
-      SELECT id, nombreprod, modelo, ubicacion, imagen
+      SELECT id, nombreprod, refInterna, ubicacion, imagen
       FROM refacciones
       WHERE ubicacion IS NOT NULL
       AND ubicacion <> ''
