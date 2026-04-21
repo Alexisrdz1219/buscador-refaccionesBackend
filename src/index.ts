@@ -1812,7 +1812,30 @@ import { Request, Response, NextFunction } from "express";
     }
     }
     // AS
-    app.use((req: any, res, next) => {
+  //   app.use((req: any, res, next) => {
+
+  // const inicio = Date.now();
+
+  // res.on("finish", () => {
+
+  //   const duracion = Date.now() - inicio;
+
+  //   log("INFO", "Petición HTTP", {
+  //     method: req.method,
+  //     url: req.originalUrl,
+  //     status: res.statusCode,
+  //     tiempo: `${duracion}ms`,
+  //     ip: req.ip,
+  //     usuario: req.usuario?.id,
+  //     rol: req.usuario?.rol
+  //   }, "/api");
+
+  // });
+
+  // next();
+
+  //   });
+  app.use((req: any, res, next) => {
 
   const inicio = Date.now();
 
@@ -1820,9 +1843,29 @@ import { Request, Response, NextFunction } from "express";
 
     const duracion = Date.now() - inicio;
 
+    const url = req.originalUrl;
+
+    // 🔥 FILTROS INTELIGENTES
+    const ignorarRutas = [
+      "/destacadas",
+      "/ping",
+      "/logs-db"
+    ];
+
+    const esRutaIgnorada = ignorarRutas.some(r => url.includes(r));
+
+    // 🔥 SOLO LOG IMPORTANTE
+    const esError = res.statusCode >= 400;
+    const esLento = duracion > 500; // ms
+
+    // 🚀 CONDICIÓN FINAL
+    if (esRutaIgnorada && !esError) return;
+
+    if (process.env.NODE_ENV === "production" && !esError && !esLento) return;
+
     log("INFO", "Petición HTTP", {
       method: req.method,
-      url: req.originalUrl,
+      url,
       status: res.statusCode,
       tiempo: `${duracion}ms`,
       ip: req.ip,
@@ -1834,7 +1877,7 @@ import { Request, Response, NextFunction } from "express";
 
   next();
 
-    });
+});
     // VARIABLES
   const bcrypt = require("bcrypt");
   const jwt = require("jsonwebtoken");
