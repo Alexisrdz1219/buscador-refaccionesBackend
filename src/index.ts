@@ -127,7 +127,34 @@ app.get("/refacciones/envio", async (req, res) => {
   }
 });
 
-app.get("/refacciones", async (_, res) => {
+// app.get("/refacciones", async (_, res) => {
+//   const result = await pool.query(`
+//     SELECT 
+//       r.*,
+//       COALESCE(
+//         json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
+//         '[]'
+//       ) AS tags
+//     FROM refacciones r
+//     LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+//     LEFT JOIN tags t ON t.id = rt.tag_id
+//     GROUP BY r.id
+//     ORDER BY r.id ASC
+//   `);
+
+//   res.json(result.rows);
+// });
+
+app.get("/refacciones", async (req: any, res) => {
+  const rol = req.user?.rol;
+
+  let filtro = "";
+
+  // 👇 lógica de acceso
+  if (rol !== "admin") {
+    filtro = `WHERE r.tipo = 'refaccion'`;
+  }
+
   const result = await pool.query(`
     SELECT 
       r.*,
@@ -138,6 +165,7 @@ app.get("/refacciones", async (_, res) => {
     FROM refacciones r
     LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
     LEFT JOIN tags t ON t.id = rt.tag_id
+    ${filtro}
     GROUP BY r.id
     ORDER BY r.id ASC
   `);
