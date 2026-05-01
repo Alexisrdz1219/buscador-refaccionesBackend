@@ -147,7 +147,7 @@ app.get("/refacciones/envio", async (req, res) => {
 
 app.get("/refacciones", async (req: any, res) => {
   const rol = req.user?.rol;
-
+console.log("ROL:", req.user);
   let filtro = "";
 
   // 👇 lógica de acceso
