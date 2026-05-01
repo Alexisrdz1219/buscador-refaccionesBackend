@@ -145,14 +145,18 @@ app.get("/refacciones/envio", async (req, res) => {
 //   res.json(result.rows);
 // });
 
-app.get("/refacciones", async (req: any, res) => {
-  const rol = req.user?.rol;
-console.log("ROL:", req.user);
-  let filtro = "";
+app.get("/refacciones", verificarSesion, async (req: any, res) => {
 
-  // 👇 lógica de acceso
+  const rol = req.usuario?.rol;
+
+  console.log("ROL:", rol);
+
+  let filtro = "";
+  let params: any[] = [];
+
   if (rol !== "admin") {
-    filtro = `WHERE r.tipo = 'refaccion'`;
+    filtro = "WHERE r.tipo = $1";
+    params.push("refaccion");
   }
 
   const result = await pool.query(`
@@ -168,7 +172,7 @@ console.log("ROL:", req.user);
     ${filtro}
     GROUP BY r.id
     ORDER BY r.id ASC
-  `);
+  `, params);
 
   res.json(result.rows);
 });
