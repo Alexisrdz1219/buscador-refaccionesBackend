@@ -55,6 +55,14 @@ import sharp from "sharp";
 
     // Con este Get es el que manda todos los datos de la pagina con ubicacion, en el frontend
     app.get("/refacciones/con-ubicacion", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
   try {
     const limit = parseInt(req.query.limit as string) || 5000;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -107,6 +115,15 @@ import sharp from "sharp";
 
 
 app.get("/refacciones/envio", async (req, res) => {
+
+  const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
   try {
     const result = await pool.query(`
       SELECT id, nombreprod, modelo, ubicacion, en_envio
@@ -147,6 +164,14 @@ app.get("/refacciones/envio", async (req, res) => {
 
 app.get("/refacciones", verificarSesion, async (req: any, res) => {
 
+  const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
   const rol = req.usuario?.rol;
 
   console.log("ROL:", rol);
@@ -178,6 +203,14 @@ app.get("/refacciones", verificarSesion, async (req: any, res) => {
 });
 
 app.post("/refacciones/:id/tags", async (req, res) => {
+
+  const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
   const { id } = req.params;
   const { tags } = req.body;
 
@@ -308,6 +341,14 @@ app.post("/refacciones/:id/tags", async (req, res) => {
 
    app.get("/refacciones/destacadas", async (req, res) => {
 
+    const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
   const inicio = Date.now();
 
   try {
@@ -355,8 +396,14 @@ app.post("/refacciones/:id/tags", async (req, res) => {
 
 
     app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
-      log("INFO", "Datos recibidos en request", { body: req.body }, "/upload");
-    log("INFO", "Archivo recibido", { file: req.file?.originalname }, "/upload");
+
+     const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
 
       log("INFO", "DEBUG archivo", {
       existeFile: !!req.file,
@@ -726,6 +773,14 @@ await verificarStockBajo(Number(id));
 });
     // Borrar refacción POR ID
     app.delete("/refacciones/:id", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
       try {
         const { id } = req.params;
 
@@ -1283,6 +1338,14 @@ app.post(
     });
     // REFACCIONES COMPATIBLES
     app.post("/refacciones/:id/compatibles", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
       const refaccionId = req.params.id;
       const maquinas: number[] = req.body.maquinas || [];
 
@@ -1316,6 +1379,14 @@ app.post(
     });
     // ---
     app.get("/refacciones/:id/compatibles", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
       try {
         const { id } = req.params;
 
@@ -1333,6 +1404,14 @@ app.post(
     });
     // refacciones/:id
     app.get("/refacciones/:id", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
       try {
         const { id } = req.params;
 
@@ -1760,6 +1839,14 @@ app.get("/orings", async (req, res) => {
 
 app.put("/refacciones/envio/:id", async (req, res) => {
 
+  const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
   const { id } = req.params;
 
   if (isNaN(Number(id))) {
@@ -2116,6 +2203,14 @@ import { Request, Response, NextFunction } from "express";
 
     // SELECT TIPO FAVORITO
     app.patch("/refacciones/:id/completar", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
     try {
       const { id } = req.params;
 
@@ -2152,6 +2247,14 @@ import { Request, Response, NextFunction } from "express";
     });
     // MASSSSSSSS
     app.delete("/refacciones/:id/imagen", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
       try {
         const { id } = req.params;
 
@@ -2223,6 +2326,15 @@ import { Request, Response, NextFunction } from "express";
     });
     // PUT: Cambiar el estado (Toggle)
     app.put("/refacciones/:id/broadcast", async (req, res) => {
+
+      const token = localStorage.getItem("token");
+
+fetch("https://buscador-refaccionesbackend.onrender.com/refacciones", {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
       const { id } = req.params;
       try {
         // Usamos NOT para invertir el booleano actual
