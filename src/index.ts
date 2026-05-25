@@ -131,7 +131,7 @@ app.get("/refacciones/envio", async (req, res) => {
   }
 });
 
-router.get("/buscar", async (req, res) => {
+app.get("/buscar", async (req, res) => {
 
     try{
 
