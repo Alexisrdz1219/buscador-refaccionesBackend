@@ -131,6 +131,35 @@ app.get("/refacciones/envio", async (req, res) => {
   }
 });
 
+router.get("/buscar", async (req, res) => {
+
+    try{
+
+        const q = req.query.q;
+
+        const resultado = await pool.query(`
+            
+            SELECT id, titulo, ref_interna
+            FROM refacciones
+            WHERE 
+                titulo ILIKE $1
+                OR ref_interna ILIKE $1
+            LIMIT 5
+
+        `, [`%${q}%`]);
+
+        res.json(resultado.rows);
+
+    }catch(error){
+
+        console.log(error);
+        res.status(500).json({
+            error: "Error al buscar"
+        });
+
+    }
+
+});
 // app.get("/refacciones", async (_, res) => {
 //   const result = await pool.query(`
 //     SELECT 
