@@ -136,6 +136,7 @@ app.get("/buscar", async (req, res) => {
     try{
 
         const q = req.query.q;
+        const limit = Number(req.query.limit) || 5;
 
         const resultado = await pool.query(`
             
@@ -144,9 +145,9 @@ app.get("/buscar", async (req, res) => {
             WHERE 
                 nombreprod ILIKE $1
                 OR refInterna ILIKE $1
-            LIMIT 5
+            LIMIT $2
 
-        `, [`%${q}%`]);
+        `, [`%${q}%`, limit]);
 
         res.json(resultado.rows);
 
