@@ -139,11 +139,11 @@ app.get("/buscar", async (req, res) => {
 
         const resultado = await pool.query(`
             
-            SELECT id, titulo, ref_interna
+            SELECT id, nombreprod, refInterna
             FROM refacciones
             WHERE 
                 titulo ILIKE $1
-                OR ref_interna ILIKE $1
+                OR refInterna ILIKE $1
             LIMIT 5
 
         `, [`%${q}%`]);
