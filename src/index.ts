@@ -142,7 +142,7 @@ app.get("/buscar", async (req, res) => {
             SELECT id, nombreprod, refInterna
             FROM refacciones
             WHERE 
-                titulo ILIKE $1
+                nombreprod ILIKE $1
                 OR refInterna ILIKE $1
             LIMIT 5
 
