@@ -213,6 +213,46 @@ app.post("/movimientos", async (req, res) => {
 
 });
 
+app.get("/movimientos", async (req, res) => {
+
+    try{
+
+        const resultado = await pool.query(`
+
+            SELECT
+
+                m.id,
+                m.cantidad,
+                m.solicitado_por,
+                m.entregado_por,
+                m.fecha,
+
+                r.refinterna,
+                r.nombreprod
+
+            FROM movimientos m
+
+            INNER JOIN refacciones r
+            ON r.id = m.refaccion_id
+
+            ORDER BY m.fecha DESC
+
+        `);
+
+        res.json(resultado.rows);
+
+    }catch(error){
+
+        console.log(error);
+
+        res.status(500).json({
+            error: "Error servidor"
+        });
+
+    }
+
+});
+
 app.post("/movimientos-masivos", async (req, res) => {
 
     try{
