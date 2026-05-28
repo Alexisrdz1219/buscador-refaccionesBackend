@@ -212,6 +212,58 @@ app.post("/movimientos", async (req, res) => {
     }
 
 });
+
+app.post("/movimientos-masivos", async (req, res) => {
+
+    try{
+
+        const {
+            solicitado_por,
+            entregado_por,
+            movimientos
+        } = req.body;
+
+        for(const item of movimientos){
+
+            await pool.query(`
+
+                INSERT INTO movimientos
+                (
+                    refaccion_id,
+                    cantidad,
+                    solicitado_por,
+                    entregado_por
+                )
+                VALUES
+                ($1, $2, $3, $4)
+
+            `, [
+
+                item.id,
+                item.cantidad,
+                solicitado_por,
+                entregado_por
+
+            ]);
+
+        }
+
+        res.json({
+            ok: true,
+            mensaje: "Movimientos registrados"
+        });
+
+    }catch(error){
+
+        console.log(error);
+
+        res.status(500).json({
+            error: "Error servidor"
+        });
+
+    }
+
+});
 // app.get("/refacciones", async (_, res) => {
 //   const result = await pool.query(`
 //     SELECT 
