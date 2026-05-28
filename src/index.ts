@@ -161,6 +161,94 @@ app.get("/buscar", async (req, res) => {
     }
 
 });
+
+app.get("/buscar-codigo", async (req, res) => {
+
+    try{
+
+        const codigo = req.query.codigo;
+
+        const resultado = await pool.query(`
+
+            SELECT
+                id,
+                nombreprod,
+                refInterna,
+                ubicacion
+            FROM refacciones
+            WHERE refInterna = $1
+            LIMIT 1
+
+        `, [codigo]);
+
+        if(resultado.rows.length === 0){
+
+            return res.status(404).json({
+                error: "No encontrado"
+            });
+
+        }
+
+        res.json(resultado.rows[0]);
+
+    }catch(error){
+
+        console.log(error);
+
+        res.status(500).json({
+            error: "Error del servidor"
+        });
+
+    }
+
+});
+
+app.post("/movimientos", async (req, res) => {
+
+    try{
+
+        const {
+            refaccion_id,
+            cantidad,
+            solicitado_por,
+            entregado_por
+        } = req.body;
+
+        await pool.query(`
+
+            INSERT INTO movimientos
+            (
+                refaccion_id,
+                cantidad,
+                solicitado_por,
+                entregado_por
+            )
+            VALUES
+            ($1, $2, $3, $4)
+
+        `, [
+            refaccion_id,
+            cantidad,
+            solicitado_por,
+            entregado_por
+        ]);
+
+        res.json({
+            ok: true,
+            mensaje: "Movimiento registrado"
+        });
+
+    }catch(error){
+
+        console.log(error);
+
+        res.status(500).json({
+            error: "Error al guardar movimiento"
+        });
+
+    }
+
+});
 // app.get("/refacciones", async (_, res) => {
 //   const result = await pool.query(`
 //     SELECT 
