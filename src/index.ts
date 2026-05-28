@@ -164,31 +164,7 @@ app.get("/buscar-codigo", async (req, res) => {
     }
 
 });
-app.get("/buscar-codigo", async (req, res) => {
 
-    try{
-
-        console.log(req.query.codigo);
-
-        const codigo = req.query.codigo;
-
-        const resultado = await pool.query(`
-
-            SELECT *
-            FROM refacciones
-            WHERE refInterna = $1
-
-        `, [codigo]);
-
-        res.json(resultado.rows);
-
-    }catch(error){
-
-        console.log(error);
-
-    }
-
-});
 
 app.post("/movimientos", async (req, res) => {
 
