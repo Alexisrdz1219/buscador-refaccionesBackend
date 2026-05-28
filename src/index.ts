@@ -166,38 +166,23 @@ app.get("/buscar-codigo", async (req, res) => {
 
     try{
 
+        console.log(req.query.codigo);
+
         const codigo = req.query.codigo;
 
         const resultado = await pool.query(`
 
-            SELECT
-                id,
-                nombreprod,
-                refInterna,
-                ubicacion
+            SELECT *
             FROM refacciones
             WHERE refInterna = $1
-            LIMIT 1
 
         `, [codigo]);
 
-        if(resultado.rows.length === 0){
-
-            return res.status(404).json({
-                error: "No encontrado"
-            });
-
-        }
-
-        res.json(resultado.rows[0]);
+        res.json(resultado.rows);
 
     }catch(error){
 
         console.log(error);
-
-        res.status(500).json({
-            error: "Error del servidor"
-        });
 
     }
 
