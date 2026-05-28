@@ -151,7 +151,7 @@ app.get("/buscar-codigo", async (req, res) => {
 
         console.log(resultado.rows);
 
-        res.json(resultado.rows);
+        res.json(resultado.rows[0]);
 
     }catch(error){
 
