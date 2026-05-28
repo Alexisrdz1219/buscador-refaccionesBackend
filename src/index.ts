@@ -131,37 +131,39 @@ app.get("/refacciones/envio", async (req, res) => {
   }
 });
 
-app.get("/buscar", async (req, res) => {
+app.get("/buscar-codigo", async (req, res) => {
 
     try{
 
-        const q = req.query.q;
-        const limit = Number(req.query.limit) || 5;
+        const codigo =
+        req.query.codigo?.toString().trim();
+
+        console.log("CODIGO RECIBIDO:");
+        console.log(JSON.stringify(codigo));
 
         const resultado = await pool.query(`
-            
-            SELECT id, nombreprod, refInterna
-            FROM refacciones
-            WHERE 
-                nombreprod ILIKE $1
-                OR refInterna ILIKE $1
-            LIMIT $2
 
-        `, [`%${q}%`, limit]);
+            SELECT *
+            FROM refacciones
+            WHERE TRIM(refInterna) ILIKE TRIM($1)
+
+        `, [codigo]);
+
+        console.log(resultado.rows);
 
         res.json(resultado.rows);
 
     }catch(error){
 
         console.log(error);
+
         res.status(500).json({
-            error: "Error al buscar"
+            error: "Error servidor"
         });
 
     }
 
 });
-
 app.get("/buscar-codigo", async (req, res) => {
 
     try{
