@@ -324,37 +324,222 @@ app.post("/movimientos-masivos", async (req, res) => {
 
 app.get("/refacciones", verificarSesion, async (req: any, res) => {
 
+  try{
 
+    const rol = req.usuario?.rol;
 
-  const rol = req.usuario?.rol;
+    // PAGINA ACTUAL
+    const page =
+    Number(req.query.page) || 1;
 
-  console.log("ROL:", rol);
+    // LIMITE POR PAGINA
+    const limit =
+    Number(req.query.limit) || 20;
 
-  let filtro = "";
-  let params: any[] = [];
+    // BUSQUEDA
+    const q =
+    req.query.q || "";
 
-  if (rol !== "admin") {
-    filtro = "WHERE r.tipo = $1";
-    params.push("refaccion");
+    // OFFSET
+    const offset =
+    (page - 1) * limit;
+
+    let condiciones: string[] = [];
+    let params: any[] = [];
+
+    // FILTRO ROL
+    if(rol !== "admin"){
+
+      condiciones.push(
+        `r.tipo = $${params.length + 1}`
+      );
+
+      params.push("refaccion");
+
+    }
+
+    // BUSQUEDA
+    if(q){
+
+      condiciones.push(`(
+
+        r.nombreprod ILIKE $${params.length + 1}
+
+        OR
+
+        r.refinterna ILIKE $${params.length + 1}
+
+      )`);
+
+      params.push(`%${q}%`);
+
+    }
+
+    // ARMAR WHERE
+    const where =
+    condiciones.length > 0
+
+      ? `WHERE ${condiciones.join(" AND ")}`
+
+      : "";
+
+    // LIMIT Y OFFSET
+    params.push(limit);
+    params.push(offset);
+
+    const result = await pool.query(`
+
+      SELECT
+
+        r.id,
+        r.nombreprod,
+        r.refinterna,
+        r.ubicacion,
+        r.tipo,
+
+        COALESCE(
+
+          json_agg(t.nombre)
+
+          FILTER (
+            WHERE t.nombre IS NOT NULL
+          ),
+
+          '[]'
+
+        ) AS tags
+
+      FROM refacciones r
+
+      LEFT JOIN refacciones_tags rt
+      ON r.id = rt.refaccion_id
+
+      LEFT JOIN tags t
+      ON t.id = rt.tag_id
+
+      ${where}
+
+      GROUP BY r.id
+
+      ORDER BY r.id DESC
+
+      LIMIT $${params.length - 1}
+
+      OFFSET $${params.length}
+
+    `, params);
+
+    // TOTAL REGISTROS
+    let totalParams: any[] = [];
+
+    let totalCondiciones: string[] = [];
+
+    if(rol !== "admin"){
+
+      totalCondiciones.push(
+        `tipo = $${totalParams.length + 1}`
+      );
+
+      totalParams.push("refaccion");
+
+    }
+
+    if(q){
+
+      totalCondiciones.push(`(
+
+        nombreprod ILIKE $${totalParams.length + 1}
+
+        OR
+
+        refinterna ILIKE $${totalParams.length + 1}
+
+      )`);
+
+      totalParams.push(`%${q}%`);
+
+    }
+
+    const totalWhere =
+    totalCondiciones.length > 0
+
+      ? `WHERE ${totalCondiciones.join(" AND ")}`
+
+      : "";
+
+    const totalResult =
+    await pool.query(`
+
+      SELECT COUNT(*) AS total
+
+      FROM refacciones
+
+      ${totalWhere}
+
+    `, totalParams);
+
+    const total =
+    Number(totalResult.rows[0].total);
+
+    res.json({
+
+      data: result.rows,
+
+      total,
+
+      totalPaginas:
+      Math.ceil(total / limit),
+
+      paginaActual: page
+
+    });
+
+  }catch(error){
+
+    console.log(error);
+
+    res.status(500).json({
+
+      error: "Error servidor"
+
+    });
+
   }
 
-  const result = await pool.query(`
-    SELECT 
-      r.*,
-      COALESCE(
-        json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
-        '[]'
-      ) AS tags
-    FROM refacciones r
-    LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
-    LEFT JOIN tags t ON t.id = rt.tag_id
-    ${filtro}
-    GROUP BY r.id
-    ORDER BY r.id ASC
-  `, params);
-
-  res.json(result.rows);
 });
+
+// app.get("/refacciones", verificarSesion, async (req: any, res) => {
+
+//   const rol = req.usuario?.rol;
+
+//   console.log("ROL:", rol);
+
+//   let filtro = "";
+//   let params: any[] = [];
+
+//   if (rol !== "admin") {
+//     filtro = "WHERE r.tipo = $1";
+//     params.push("refaccion");
+//   }
+
+//   const result = await pool.query(`
+//     SELECT 
+//       r.*,
+//       COALESCE(
+//         json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
+//         '[]'
+//       ) AS tags
+//     FROM refacciones r
+//     LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+//     LEFT JOIN tags t ON t.id = rt.tag_id
+//     ${filtro}
+//     GROUP BY r.id
+//     ORDER BY r.id ASC
+//   `, params);
+
+//   res.json(result.rows);
+// });
+
 
 app.post("/refacciones/:id/tags", async (req, res) => {
 
