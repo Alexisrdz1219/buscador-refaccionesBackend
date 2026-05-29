@@ -171,10 +171,13 @@ app.post("/movimientos", async (req, res) => {
     try{
 
         const {
+
             refaccion_id,
             cantidad,
             solicitado_por,
-            entregado_por
+            entregado_por,
+            maquina
+
         } = req.body;
 
         await pool.query(`
@@ -184,16 +187,20 @@ app.post("/movimientos", async (req, res) => {
                 refaccion_id,
                 cantidad,
                 solicitado_por,
-                entregado_por
+                entregado_por,
+                maquina
             )
             VALUES
-            ($1, $2, $3, $4)
+            ($1, $2, $3, $4, $5)
 
         `, [
+
             refaccion_id,
             cantidad,
             solicitado_por,
-            entregado_por
+            entregado_por,
+            maquina
+
         ]);
 
         res.json({
@@ -219,23 +226,24 @@ app.get("/movimientos", async (req, res) => {
 
         const resultado = await pool.query(`
 
-            SELECT
+           SELECT
 
-                m.id,
-                m.cantidad,
-                m.solicitado_por,
-                m.entregado_por,
-                m.fecha,
+    m.id,
+    m.cantidad,
+    m.solicitado_por,
+    m.entregado_por,
+    m.maquina,
+    m.fecha,
 
-                r.refinterna,
-                r.nombreprod
+    r.refinterna,
+    r.nombreprod
 
-            FROM movimientos m
+FROM movimientos m
 
-            INNER JOIN refacciones r
-            ON r.id = m.refaccion_id
+INNER JOIN refacciones r
+ON r.id = m.refaccion_id
 
-            ORDER BY m.fecha DESC
+ORDER BY m.fecha DESC
 
         `);
 
@@ -258,9 +266,12 @@ app.post("/movimientos-masivos", async (req, res) => {
     try{
 
         const {
+
             solicitado_por,
             entregado_por,
+            maquina,
             movimientos
+
         } = req.body;
 
         for(const item of movimientos){
@@ -272,25 +283,29 @@ app.post("/movimientos-masivos", async (req, res) => {
                     refaccion_id,
                     cantidad,
                     solicitado_por,
-                    entregado_por
+                    entregado_por,
+                    maquina
                 )
                 VALUES
-                ($1, $2, $3, $4)
+                ($1, $2, $3, $4, $5)
 
             `, [
 
                 item.id,
                 item.cantidad,
                 solicitado_por,
-                entregado_por
+                entregado_por,
+                maquina
 
             ]);
 
         }
 
         res.json({
+
             ok: true,
             mensaje: "Movimientos registrados"
+
         });
 
     }catch(error){
