@@ -601,11 +601,31 @@ app.post("/refacciones/:id/tags", async (req, res) => {
           );
 
           if (existe.rows.length > 0) {
-            // 🔄 ACTUALIZAR SOLO CANTIDAD
             await pool.query(
-              "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
-              [Number(row.cantidad) || 0, row.refInterna]
-            );
+
+  `
+
+  UPDATE refacciones
+
+  SET
+
+    cantidad = $1,
+
+    updated_at = NOW()
+
+  WHERE refinterna = $2
+
+  `,
+
+  [
+
+    Number(row.cantidad) || 0,
+
+    row.refInterna
+
+  ]
+
+);
             actualizados++;
 
           } else {
@@ -1365,8 +1385,16 @@ app.post(
           const update = await pool.query(
             `
             UPDATE refacciones 
-            SET cantidad = $1, palclave = $2 
-            WHERE refinterna = $3
+
+SET
+
+  cantidad = $1,
+
+  palclave = $2,
+
+  updated_at = NOW()
+
+WHERE refinterna = $3
             RETURNING id
             `,
             [
@@ -1384,34 +1412,62 @@ app.post(
         } 
         
         // =========================
-        // 🆕 INSERT
-        // =========================
-        else {
+// 🆕 INSERT
+// =========================
+else {
 
-          const insert = await pool.query(
-            `
-            INSERT INTO refacciones
-            (nombreprod, refinterna, cantidad, unidad, palclave)
-            VALUES ($1,$2,$3,$4,$5)
-            RETURNING id
-            `,
-            [
-              data.nombreProd,
-              data.refInterna,
-              limpiarCantidad(data.cantidad) || 0,
-              data.unidad,
-              data.palClave
-            ]
-          );
+  const insert = await pool.query(
 
-          const refaccionId = insert.rows[0].id;
+    `
 
-          // 🔥 ALERTA TAMBIÉN EN NUEVOS
-          await verificarStockBajo(refaccionId);
+    INSERT INTO refacciones
 
-          nuevos.push(data);
-          insertados++;
-        }
+    (
+
+      nombreprod,
+      refinterna,
+      cantidad,
+      unidad,
+      palclave,
+      updated_at
+
+    )
+
+    VALUES ($1,$2,$3,$4,$5,NOW())
+
+    RETURNING id
+
+    `,
+
+    [
+
+      data.nombreProd,
+
+      data.refInterna,
+
+      limpiarCantidad(data.cantidad) || 0,
+
+      data.unidad,
+
+      data.palClave
+
+    ]
+
+  );
+
+  const refaccionId =
+  insert.rows[0].id;
+
+  // 🔥 ALERTA TAMBIÉN EN NUEVOS
+  await verificarStockBajo(
+    refaccionId
+  );
+
+  nuevos.push(data);
+
+  insertados++;
+
+}
       }
 
       res.json({
@@ -1437,6 +1493,43 @@ app.post(
   }
 );
 
+app.get("/ultima-actualizacion", async (req, res) => {
+
+  try{
+
+    const result = await pool.query(`
+
+      SELECT MAX(updated_at)
+      AS ultima_actualizacion
+
+      FROM refacciones
+
+    `);
+
+    res.json({
+
+      ok: true,
+
+      ultimaActualizacion:
+      result.rows[0].ultima_actualizacion
+
+    });
+
+  }catch(error){
+
+    console.log(error);
+
+    res.status(500).json({
+
+      ok: false,
+
+      error: "Error servidor"
+
+    });
+
+  }
+
+});
 
     app.get("/test-alerta/:id", async (req, res) => {
   const { id } = req.params;
