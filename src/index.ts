@@ -243,45 +243,25 @@ app.post("/movimientos", async (req, res) => {
 });
 
 app.get("/movimientos", async (req, res) => {
-
-    try{
+    try {
+        const mes = req.query.mes; // ej: "2025-06"
 
         const resultado = await pool.query(`
-
-           SELECT
-
-    m.id,
-    m.cantidad,
-    m.solicitado_por,
-    m.entregado_por,
-    m.maquina,
-    m.nota,
-    m.fecha,
-
-    r.refinterna,
-    r.nombreprod
-
-FROM movimientos m
-
-INNER JOIN refacciones r
-ON r.id = m.refaccion_id
-
-ORDER BY m.fecha DESC
-
-        `);
+            SELECT
+                m.id, m.cantidad, m.solicitado_por, m.entregado_por,
+                m.maquina, m.nota, m.fecha,
+                r.refinterna, r.nombreprod
+            FROM movimientos m
+            INNER JOIN refacciones r ON r.id = m.refaccion_id
+            ${mes ? "WHERE TO_CHAR(m.fecha, 'YYYY-MM') = $1" : ""}
+            ORDER BY m.fecha DESC
+        `, mes ? [mes] : []);
 
         res.json(resultado.rows);
-
-    }catch(error){
-
+    } catch (error) {
         console.log(error);
-
-        res.status(500).json({
-            error: "Error servidor"
-        });
-
+        res.status(500).json({ error: "Error servidor" });
     }
-
 });
 
 app.post("/movimientos-masivos", async (req, res) => {
@@ -354,6 +334,22 @@ app.delete("/movimientos/:id", async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "Error al eliminar" });
+    }
+});
+
+app.get("/movimientos/meses", async (req, res) => {
+    try {
+        const resultado = await pool.query(`
+            SELECT DISTINCT 
+                TO_CHAR(fecha, 'YYYY-MM') AS mes,
+                TO_CHAR(fecha, 'Month YYYY') AS mes_label
+            FROM movimientos
+            ORDER BY mes DESC
+        `);
+        res.json(resultado.rows);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Error servidor" });
     }
 });
 // app.get("/refacciones", async (_, res) => {
