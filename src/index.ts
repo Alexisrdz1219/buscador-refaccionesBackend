@@ -131,6 +131,8 @@ app.get("/refacciones/envio", async (req, res) => {
   }
 });
 
+// CONTROL DE SALIDAS
+
 app.get("/buscar-codigo", async (req, res) => {
 
     try{
@@ -352,23 +354,41 @@ app.get("/movimientos/meses", async (req, res) => {
         res.status(500).json({ error: "Error servidor" });
     }
 });
-// app.get("/refacciones", async (_, res) => {
-//   const result = await pool.query(`
-//     SELECT 
-//       r.*,
-//       COALESCE(
-//         json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
-//         '[]'
-//       ) AS tags
-//     FROM refacciones r
-//     LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
-//     LEFT JOIN tags t ON t.id = rt.tag_id
-//     GROUP BY r.id
-//     ORDER BY r.id ASC
-//   `);
 
-//   res.json(result.rows);
-// });
+// CONTROL DE SALIDAS TERMINA
+
+// PAGINA DE HISTORIAL DE SALIDAS
+app.get("/historial-producto", async (req, res) => {
+    try {
+        const q = req.query.q?.toString().trim();
+        if (!q) return res.json([]);
+
+        const resultado = await pool.query(`
+            SELECT
+                m.id,
+                m.cantidad,
+                m.solicitado_por,
+                m.entregado_por,
+                m.maquina,
+                m.nota,
+                m.fecha,
+                r.refinterna,
+                r.nombreprod
+            FROM movimientos m
+            INNER JOIN refacciones r ON r.id = m.refaccion_id
+            WHERE TRIM(r.refinterna) ILIKE $1
+               OR TRIM(r.nombreprod) ILIKE $1
+            ORDER BY m.fecha DESC
+        `, [`%${q}%`]);
+
+        res.json(resultado.rows);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+
 
 app.get("/refacciones", verificarSesion, async (req: any, res) => {
 
