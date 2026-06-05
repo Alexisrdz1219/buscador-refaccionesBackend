@@ -345,6 +345,17 @@ app.post("/movimientos-masivos", async (req, res) => {
     }
 
 });
+
+app.delete("/movimientos/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query(`DELETE FROM movimientos WHERE id = $1`, [id]);
+        res.json({ ok: true });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Error al eliminar" });
+    }
+});
 // app.get("/refacciones", async (_, res) => {
 //   const result = await pool.query(`
 //     SELECT 
