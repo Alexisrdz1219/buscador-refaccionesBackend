@@ -41,7 +41,7 @@ import sharp from "sharp";
           } 
       catch (e) {
                   const error = e as Error;
-                  console.error("❌ Error en /health:", { message: error.message, stack: error.stack});
+                  console.error("Error en /health:", { message: error.message, stack: error.stack});
                   res.status(500).json({ ok: false, message: "Error conectando a la base de datos",});
                 }
     });
@@ -122,7 +122,7 @@ app.get("/refacciones/envio", async (req, res) => {
     res.json(result.rows);
 
   } catch (error) {
-    console.error("🔥 ERROR REAL ENVIO:", error);
+    console.error("ERROR REAL ENVIO:", error);
 
     res.status(500).json({
       ok: false,
@@ -165,6 +165,25 @@ app.get("/buscar-codigo", async (req, res) => {
 
 });
 
+app.get("/buscar-sugerencias", async (req, res) => {
+    try {
+        const q = req.query.q?.toString().trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const resultado = await pool.query(`
+            SELECT refInterna, nombreprod, ubicacion
+            FROM refacciones
+            WHERE TRIM(refInterna) ILIKE $1
+               OR TRIM(nombreprod) ILIKE $1
+            LIMIT 8
+        `, [`%${q}%`]);
+
+        res.json(resultado.rows);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
 
 app.post("/movimientos", async (req, res) => {
 
@@ -378,13 +397,13 @@ app.post("/refacciones/:id/tags", async (req, res) => {
   const { tags } = req.body;
 
   try {
-    // 🔥 1. BORRAR RELACIONES ANTERIORES
+    //  1. BORRAR RELACIONES ANTERIORES
     await pool.query(
       "DELETE FROM refacciones_tags WHERE refaccion_id = $1",
       [id]
     );
 
-    // 🔥 2. INSERTAR NUEVOS TAGS
+    // 2. INSERTAR NUEVOS TAGS
     for (const nombre of tags) {
       const tagRes = await pool.query(
         `INSERT INTO tags (nombre)
@@ -431,7 +450,7 @@ app.post("/refacciones/:id/tags", async (req, res) => {
           );
 
           if (existe.rows.length > 0) {
-            // 🔄 ACTUALIZAR SOLO CANTIDAD
+            //  ACTUALIZAR SOLO CANTIDAD
             await pool.query(
               "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
               [Number(row.cantidad) || 0, row.refInterna]
@@ -439,7 +458,7 @@ app.post("/refacciones/:id/tags", async (req, res) => {
             actualizados++;
 
           } else {
-            // 🆕 INSERTAR NUEVO
+            //  INSERTAR NUEVO
             await pool.query(
               `
               INSERT INTO refacciones (
@@ -525,7 +544,7 @@ app.post("/refacciones/:id/tags", async (req, res) => {
 
       const duracion = Date.now() - inicio;
 
-      // 🔥 LOG INTELIGENTE
+      // LOG INTELIGENTE
       if (result.rowCount === 0 || duracion > 300) {
         log("INFO", "Consulta destacadas", {
           total: result.rowCount,
@@ -583,7 +602,7 @@ app.post("/refacciones/:id/tags", async (req, res) => {
         // 🔹 separar campos normales
         const { compatibilidad: _c, imagenUrl: _iu, inputTags: _it, ...campos } = body;
 
-        // 🔥 NORMALIZAR ALERTA
+        //  NORMALIZAR ALERTA
 if (campos.alerta_activa !== undefined) {
   campos.alerta_activa = campos.alerta_activa === "true";
 }
@@ -591,7 +610,7 @@ if (campos.alerta_activa !== undefined) {
 if (campos.stock_minimo !== undefined) {
   campos.stock_minimo = Number(campos.stock_minimo) || 0;
 }
-// 🚨 VALIDACIÓN
+//  VALIDACIÓN
 if (campos.stock_minimo < 0) {
   return res.status(400).json({
     ok: false,
@@ -605,7 +624,7 @@ if (campos.stock_minimo < 0) {
           campos.nummaquina = nummaquina;
         }
 
-        // 🔥 NORMALIZAR imagenUrl (puede venir string o array)
+        // NORMALIZAR imagenUrl (puede venir string o array)
         let imagenUrl = body.imagenUrl;
 
         if (Array.isArray(imagenUrl)) {
@@ -631,14 +650,14 @@ const fileName = `refaccion_${Date.now()}.${ext}`;
 //   ContentType: req.file.mimetype
 // }).promise();
 
-// 🔥 COMPRESIÓN AQUÍ
+//  COMPRESIÓN AQUÍ
 const compressedBuffer = await sharp(req.file.buffer)
 .rotate()
   .resize(800) // ancho máximo (ajústalo: 400, 600, 800)
   .jpeg({ quality: 70 }) // calidad (60–80 recomendado)
   .toBuffer();
 
-// 🔥 SUBIR IMAGEN YA OPTIMIZADA
+//  SUBIR IMAGEN YA OPTIMIZADA
 const result = await s3.upload({
   Bucket: process.env.AWS_BUCKET_NAME!,
   Key: fileName,
@@ -671,12 +690,12 @@ campos.imagen = result.Location;
       // campos.imagen = data.publicUrl;
     }
 
-        // 🔹 si NO hay archivo pero sí URL válida
+        //  si NO hay archivo pero sí URL válida
         else if (typeof imagenUrl === "string" && imagenUrl.trim() !== "") {
           campos.imagen = imagenUrl.trim();
         }
 
-        // 🔹 actualizar refacción
+        //  actualizar refacción
         const keys = Object.keys(campos);
         const values = Object.values(campos);
 
@@ -689,7 +708,7 @@ campos.imagen = result.Location;
           );
         }
 
-        // 🔹 actualizar compatibilidad
+        //  actualizar compatibilidad
         await pool.query(
           "DELETE FROM refaccion_maquina WHERE refaccion_id=$1",
           [id]
@@ -707,18 +726,18 @@ await verificarStockBajo(Number(id));
       } catch (e) {
   const error = e as Error;
 
-  // 🔥 MOSTRAR ERROR CLARO EN CONSOLA
-  console.error("❌ ERROR REAL:");
+  //  MOSTRAR ERROR CLARO EN CONSOLA
+  console.error(" ERROR REAL:");
   console.error("Mensaje:", error.message);
   console.error("Stack:", error.stack);
 
-  // 📝 Guardar en tu sistema de logs
+  //  Guardar en tu sistema de logs
   log("ERROR", "Error capturado", {
     message: error.message,
     stack: error.stack
   }, "/server");
 
-  // 📡 Respuesta al frontend
+  //  Respuesta al frontend
   res.status(500).json({
     ok: false,
     error: error.message
@@ -1119,7 +1138,7 @@ await verificarStockBajo(Number(id));
 //         } catch (error) {
 //   const err = error as Error;
 
-//   console.log("❌ ERROR REAL:", err.message);
+//   console.log(" ERROR REAL:", err.message);
 //   console.log("STACK:", err.stack);
 
 //   log("ERROR", "Error capturado", {
@@ -1534,7 +1553,7 @@ app.post(
 
       try {
         const { id } = req.params;
-
+          // EL QUE ME ESTA GENERANOD MUCHAS COSAS
         const result = await pool.query(`
   SELECT 
     r.*,
