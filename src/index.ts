@@ -195,7 +195,8 @@ app.post("/movimientos", async (req, res) => {
             cantidad,
             solicitado_por,
             entregado_por,
-            maquina
+            maquina,
+            nota
 
         } = req.body;
 
@@ -207,10 +208,11 @@ app.post("/movimientos", async (req, res) => {
                 cantidad,
                 solicitado_por,
                 entregado_por,
-                maquina
+                maquina,
+                nota
             )
             VALUES
-            ($1, $2, $3, $4, $5)
+            ($1, $2, $3, $4, $5, $6)
 
         `, [
 
@@ -218,7 +220,8 @@ app.post("/movimientos", async (req, res) => {
             cantidad,
             solicitado_por,
             entregado_por,
-            maquina
+            maquina,
+            nota
 
         ]);
 
@@ -252,6 +255,7 @@ app.get("/movimientos", async (req, res) => {
     m.solicitado_por,
     m.entregado_por,
     m.maquina,
+    m.nota,
     m.fecha,
 
     r.refinterna,
@@ -289,7 +293,8 @@ app.post("/movimientos-masivos", async (req, res) => {
             solicitado_por,
             entregado_por,
             maquina,
-            movimientos
+            movimientos,
+            nota
 
         } = req.body;
 
@@ -303,10 +308,11 @@ app.post("/movimientos-masivos", async (req, res) => {
                     cantidad,
                     solicitado_por,
                     entregado_por,
-                    maquina
+                    maquina,
+                    nota
                 )
                 VALUES
-                ($1, $2, $3, $4, $5)
+                ($1, $2, $3, $4, $5, $6)
 
             `, [
 
@@ -314,7 +320,8 @@ app.post("/movimientos-masivos", async (req, res) => {
                 item.cantidad,
                 solicitado_por,
                 entregado_por,
-                maquina
+                maquina,
+                nota
 
             ]);
 
