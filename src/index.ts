@@ -171,7 +171,7 @@ app.get("/buscar-sugerencias", async (req, res) => {
         if (!q || q.length < 2) return res.json([]);
 
         const resultado = await pool.query(`
-            SELECT refInterna, nombreprod, ubicacion
+            SELECT id, refInterna, nombreprod, ubicacion
             FROM refacciones
             WHERE TRIM(refInterna) ILIKE $1
                OR TRIM(nombreprod) ILIKE $1
