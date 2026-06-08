@@ -388,6 +388,31 @@ app.get("/historial-producto", async (req, res) => {
     }
 });
 
+// PAGINA DE HISTORIAL DE SALIDAS TERMINA  
+
+app.put("/actualizar-ubicacion", async (req, res) => {
+    try {
+        const { ubicacion, refacciones } = req.body;
+        // refacciones es un array de refinterna
+
+        if (!ubicacion || !refacciones?.length) {
+            return res.status(400).json({ error: "Faltan datos" });
+        }
+
+        for (const refinterna of refacciones) {
+            await pool.query(`
+                UPDATE refacciones
+                SET ubicacion = $1
+                WHERE TRIM(refinterna) = TRIM($2)
+            `, [ubicacion, refinterna]);
+        }
+
+        res.json({ ok: true, mensaje: "Ubicaciones actualizadas" });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
 
 
 app.get("/refacciones", verificarSesion, async (req: any, res) => {
