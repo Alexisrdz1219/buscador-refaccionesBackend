@@ -1869,48 +1869,104 @@ app.post(
 
     //   res.json(result.rows);
     // });
-    app.get("/buscar-refacciones", async (req, res) => {
-  try {
-    const { tit, ref, modelo, tipo, unidad, palabras } = req.query;
 
-    let condiciones = [];
-    let valores = [];
+
+    // FUNCIONA
+//     app.get("/buscar-refacciones", async (req, res) => {
+//   try {
+//     const { tit, ref, modelo, tipo, unidad, palabras } = req.query;
+
+//     let condiciones = [];
+//     let valores = [];
+//     let contador = 1;
+
+//     if (tit) {
+//       condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`);
+//       valores.push(`%${tit}%`);
+//     }
+
+//     if (ref) {
+//       condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`);
+//       valores.push(`%${ref}%`);
+//     }
+
+//     if (modelo) {
+//       condiciones.push(`LOWER(r.modelo) LIKE LOWER($${contador++})`);
+//       valores.push(`%${modelo}%`);
+//     }
+
+//     if (tipo) {
+//       condiciones.push(`r.tipoprod = $${contador++}`);
+//       valores.push(tipo);
+//     }
+
+//     if (unidad) {
+//       condiciones.push(`r.unidad = $${contador++}`);
+//       valores.push(unidad);
+//     }
+
+//     if (palabras) {
+//       condiciones.push(`LOWER(r.palclave) LIKE LOWER($${contador++})`);
+//       valores.push(`%${palabras}%`);
+//     }
+
+//     const where = condiciones.length
+//       ? "WHERE " + condiciones.join(" AND ")
+//       : "";
+
+//     const result = await pool.query(`
+//       SELECT 
+//         r.*,
+//         COALESCE(
+//           json_agg(DISTINCT t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
+//           '[]'
+//         ) AS tags
+//       FROM refacciones r
+//       LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+//       LEFT JOIN tags t ON t.id = rt.tag_id
+//       ${where}
+//       GROUP BY r.id
+//       ORDER BY r.id DESC
+//       LIMIT 100
+//     `, valores);
+
+//     res.json(result.rows);
+
+//   } catch (error) {
+//     res.status(500).json([]);
+//   }
+// });
+    // REFACCIONES METADATA
+  //  FUNCIONA 
+   
+  app.get("/buscar-refacciones", async (req, res) => {
+  try {
+    const { tit, ref, modelo, tipo, unidad, palabras, pagina = "1" } = req.query;
+
+    let condiciones: string[] = [];
+    let valores: any[] = [];
     let contador = 1;
 
-    if (tit) {
-      condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`);
-      valores.push(`%${tit}%`);
-    }
+    if (tit) { condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`); valores.push(`%${tit}%`); }
+    if (ref) { condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`); valores.push(`%${ref}%`); }
+    if (modelo) { condiciones.push(`LOWER(r.modelo) LIKE LOWER($${contador++})`); valores.push(`%${modelo}%`); }
+    if (tipo) { condiciones.push(`r.tipoprod = $${contador++}`); valores.push(tipo); }
+    if (unidad) { condiciones.push(`r.unidad = $${contador++}`); valores.push(unidad); }
+    if (palabras) { condiciones.push(`LOWER(r.palclave) LIKE LOWER($${contador++})`); valores.push(`%${palabras}%`); }
 
-    if (ref) {
-      condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`);
-      valores.push(`%${ref}%`);
-    }
+    const where = condiciones.length ? "WHERE " + condiciones.join(" AND ") : "";
 
-    if (modelo) {
-      condiciones.push(`LOWER(r.modelo) LIKE LOWER($${contador++})`);
-      valores.push(`%${modelo}%`);
-    }
+    const LIMITE = 20;
+    const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
+    const offset = (paginaNum - 1) * LIMITE;
 
-    if (tipo) {
-      condiciones.push(`r.tipoprod = $${contador++}`);
-      valores.push(tipo);
-    }
+    // Total para calcular páginas
+    const countResult = await pool.query(`
+      SELECT COUNT(*) FROM refacciones r ${where}
+    `, valores);
+    const total = parseInt(countResult.rows[0].count);
 
-    if (unidad) {
-      condiciones.push(`r.unidad = $${contador++}`);
-      valores.push(unidad);
-    }
-
-    if (palabras) {
-      condiciones.push(`LOWER(r.palclave) LIKE LOWER($${contador++})`);
-      valores.push(`%${palabras}%`);
-    }
-
-    const where = condiciones.length
-      ? "WHERE " + condiciones.join(" AND ")
-      : "";
-
+    // Registros de la página actual
     const result = await pool.query(`
       SELECT 
         r.*,
@@ -1924,16 +1980,23 @@ app.post(
       ${where}
       GROUP BY r.id
       ORDER BY r.id DESC
-      LIMIT 100
-    `, valores);
+      LIMIT ${LIMITE} OFFSET $${contador}
+    `, [...valores, offset]);
 
-    res.json(result.rows);
+    res.json({
+      datos: result.rows,
+      total,
+      pagina: paginaNum,
+      totalPaginas: Math.ceil(total / LIMITE)
+    });
 
   } catch (error) {
-    res.status(500).json([]);
+    console.error(error);
+    res.status(500).json({ datos: [], total: 0, pagina: 1, totalPaginas: 1 });
   }
 });
-    // REFACCIONES METADATA
+   
+   
     app.get("/refacciones-metadata", async (req, res) => {
 
       const tipos = await pool.query(`
