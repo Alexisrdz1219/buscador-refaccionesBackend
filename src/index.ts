@@ -421,6 +421,7 @@ app.get("/dashboard-stats", async (req, res) => {
         const resultado = await pool.query(`
             SELECT
                 COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE ubicacion IS NOT NULL AND TRIM(ubicacion) != '') AS con_ubicacion,
                 MAX(updated_at) AS ultima_actualizacion,
                 (SELECT nombreprod FROM refacciones ORDER BY id DESC LIMIT 1) AS ultimo_producto,
                 (SELECT palclave FROM refacciones ORDER BY id DESC LIMIT 1) AS ultimo_palclave
