@@ -414,6 +414,25 @@ app.put("/actualizar-ubicacion", async (req, res) => {
     }
 });
 
+// PAGINA DE ACTUALIZAR UBICACIONES
+
+app.get("/dashboard-stats", async (req, res) => {
+    try {
+        const resultado = await pool.query(`
+            SELECT
+                COUNT(*) AS total,
+                MAX(updated_at) AS ultima_actualizacion,
+                (SELECT nombreprod FROM refacciones ORDER BY id DESC LIMIT 1) AS ultimo_producto,
+                (SELECT palclave FROM refacciones ORDER BY id DESC LIMIT 1) AS ultimo_palclave
+            FROM refacciones
+        `);
+
+        res.json(resultado.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
 
 app.get("/refacciones", verificarSesion, async (req: any, res) => {
 
