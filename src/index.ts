@@ -438,7 +438,7 @@ app.get("/dashboard-stats", async (req, res) => {
 app.get("/inicio-datos", async (req, res) => {
     try {
         const [alertas, destacadas, envios] = await Promise.all([
-            pool.query(`SELECT * FROM alertas_stock ORDER BY created_at DESC`),
+            pool.query(`SELECT * FROM alertas_stock ORDER BY fecha DESC`),
             pool.query(`SELECT * FROM refacciones WHERE destacada = true LIMIT 20`),
             pool.query(`SELECT * FROM refacciones WHERE en_envio = true`)
         ]);
