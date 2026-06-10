@@ -2002,26 +2002,29 @@ app.post(
 
     // Total para calcular páginas
     const countResult = await pool.query(`
-      SELECT COUNT(*) FROM refacciones r ${where}
-    `, valores);
+    SELECT COUNT(*) FROM refacciones r
+    LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+    LEFT JOIN tags t ON t.id = rt.tag_id
+    ${where}
+`, valores);
     const total = parseInt(countResult.rows[0].count);
 
     // Registros de la página actual
     const result = await pool.query(`
-      SELECT 
+    SELECT 
         r.*,
         COALESCE(
-          json_agg(DISTINCT t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
-          '[]'
+            json_agg(DISTINCT t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
+            '[]'
         ) AS tags
-      FROM refacciones r
-      LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
-      LEFT JOIN tags t ON t.id = rt.tag_id
-      ${where}
-      GROUP BY r.id
-      ORDER BY r.id DESC
-      LIMIT ${LIMITE} OFFSET $${contador}
-    `, [...valores, offset]);
+    FROM refacciones r
+    LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+    LEFT JOIN tags t ON t.id = rt.tag_id
+    ${where}
+    GROUP BY r.id
+    ORDER BY r.id DESC
+    LIMIT $${contador} OFFSET $${contador + 1}
+`, [...valores, LIMITE, offset]);
 
     res.json({
       datos: result.rows,
