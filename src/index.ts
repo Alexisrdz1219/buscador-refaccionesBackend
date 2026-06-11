@@ -1979,7 +1979,7 @@ app.post(
     // REFACCIONES METADATA
   //  FUNCIONA 
    
-  app.get("/buscar-refacciones", async (req, res) => {
+ app.get("/buscar-refacciones", async (req, res) => {
   try {
     const { tit, ref, modelo, tipo, unidad, palabras, pagina = "1" } = req.query;
 
@@ -1987,8 +1987,16 @@ app.post(
     let valores: any[] = [];
     let contador = 1;
 
-    if (tit) { condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`); valores.push(`%${tit}%`); }
-    if (ref) { condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`); valores.push(`%${ref}%`); }
+    // tit y ref juntos → OR (mismo input de búsqueda general)
+    if (tit && ref && tit === ref) {
+      condiciones.push(`(LOWER(r.nombreprod) LIKE LOWER($${contador}) OR LOWER(r.refinterna) LIKE LOWER($${contador}))`);
+      valores.push(`%${tit}%`);
+      contador++;
+    } else {
+      if (tit) { condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`); valores.push(`%${tit}%`); }
+      if (ref) { condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`); valores.push(`%${ref}%`); }
+    }
+
     if (modelo) { condiciones.push(`LOWER(r.modelo) LIKE LOWER($${contador++})`); valores.push(`%${modelo}%`); }
     if (tipo) { condiciones.push(`r.tipoprod = $${contador++}`); valores.push(tipo); }
     if (unidad) { condiciones.push(`r.unidad = $${contador++}`); valores.push(unidad); }
@@ -2000,31 +2008,26 @@ app.post(
     const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
     const offset = (paginaNum - 1) * LIMITE;
 
-    // Total para calcular páginas
     const countResult = await pool.query(`
-    SELECT COUNT(*) FROM refacciones r
-    LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
-    LEFT JOIN tags t ON t.id = rt.tag_id
-    ${where}
-`, valores);
+        SELECT COUNT(DISTINCT r.id) FROM refacciones r
+        LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+        LEFT JOIN tags t ON t.id = rt.tag_id
+        ${where}
+    `, valores);
     const total = parseInt(countResult.rows[0].count);
 
-    // Registros de la página actual
     const result = await pool.query(`
-    SELECT 
-        r.*,
-        COALESCE(
-            json_agg(DISTINCT t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
-            '[]'
-        ) AS tags
-    FROM refacciones r
-    LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
-    LEFT JOIN tags t ON t.id = rt.tag_id
-    ${where}
-    GROUP BY r.id
-    ORDER BY r.id DESC
-    LIMIT $${contador} OFFSET $${contador + 1}
-`, [...valores, LIMITE, offset]);
+        SELECT 
+            r.*,
+            COALESCE(json_agg(DISTINCT t.nombre) FILTER (WHERE t.nombre IS NOT NULL), '[]') AS tags
+        FROM refacciones r
+        LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+        LEFT JOIN tags t ON t.id = rt.tag_id
+        ${where}
+        GROUP BY r.id
+        ORDER BY r.id DESC
+        LIMIT $${contador} OFFSET $${contador + 1}
+    `, [...valores, LIMITE, offset]);
 
     res.json({
       datos: result.rows,
