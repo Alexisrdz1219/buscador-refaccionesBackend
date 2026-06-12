@@ -1989,13 +1989,26 @@ app.post(
 
     // tit y ref juntos → OR (mismo input de búsqueda general)
     if (tit && ref && tit === ref) {
-      condiciones.push(`(LOWER(r.nombreprod) LIKE LOWER($${contador}) OR LOWER(r.refinterna) LIKE LOWER($${contador}))`);
-      valores.push(`%${tit}%`);
-      contador++;
-    } else {
-      if (tit) { condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`); valores.push(`%${tit}%`); }
-      if (ref) { condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`); valores.push(`%${ref}%`); }
-    }
+    condiciones.push(`(
+        LOWER(r.nombreprod)   LIKE LOWER($${contador}) OR
+        LOWER(r.refinterna)   LIKE LOWER($${contador}) OR
+        LOWER(r.modelo)       LIKE LOWER($${contador}) OR
+        LOWER(r.palclave)     LIKE LOWER($${contador}) OR
+        LOWER(r.maquinamod)   LIKE LOWER($${contador}) OR
+        LOWER(r.maquinaesp)   LIKE LOWER($${contador}) OR
+        EXISTS (
+            SELECT 1 FROM refacciones_tags rt2
+            JOIN tags t2 ON t2.id = rt2.tag_id
+            WHERE rt2.refaccion_id = r.id
+            AND LOWER(t2.nombre) LIKE LOWER($${contador})
+        )
+    )`);
+    valores.push(`%${tit}%`);
+    contador++;
+} else {
+    if (tit) { condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`); valores.push(`%${tit}%`); }
+    if (ref) { condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`); valores.push(`%${ref}%`); }
+}
 
     if (modelo) { condiciones.push(`LOWER(r.modelo) LIKE LOWER($${contador++})`); valores.push(`%${modelo}%`); }
     if (tipo) { condiciones.push(`r.tipoprod = $${contador++}`); valores.push(tipo); }
