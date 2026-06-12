@@ -173,7 +173,7 @@ app.get("/buscar-sugerencias", async (req, res) => {
         if (!q || q.length < 2) return res.json([]);
 
         const resultado = await pool.query(`
-            SELECT id, refInterna, nombreprod, ubicacion
+            SELECT id, refInterna, nombreprod, ubicacion, imagen
             FROM refacciones
             WHERE TRIM(refInterna) ILIKE $1
                OR TRIM(nombreprod) ILIKE $1
@@ -2041,8 +2041,7 @@ app.post(
     res.status(500).json({ datos: [], total: 0, pagina: 1, totalPaginas: 1 });
   }
 });
-   
-   
+
     app.get("/refacciones-metadata", async (req, res) => {
 
       const tipos = await pool.query(`
