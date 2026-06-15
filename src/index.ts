@@ -244,6 +244,8 @@ app.post("/movimientos", async (req, res) => {
 
 });
 
+// SACAR GRAFICA
+
 app.get("/movimientos", async (req, res) => {
     try {
         const mes = req.query.mes; // ej: "2025-06"
@@ -265,6 +267,8 @@ app.get("/movimientos", async (req, res) => {
         res.status(500).json({ error: "Error servidor" });
     }
 });
+
+// hh
 
 app.post("/movimientos-masivos", async (req, res) => {
 
@@ -336,6 +340,24 @@ app.delete("/movimientos/:id", async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "Error al eliminar" });
+    }
+});
+
+app.put("/movimientos/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { cantidad, solicitado_por, maquina, nota } = req.body;
+
+        await pool.query(`
+            UPDATE movimientos
+            SET cantidad = $1, solicitado_por = $2, maquina = $3, nota = $4
+            WHERE id = $5
+        `, [cantidad, solicitado_por, maquina, nota, id]);
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "Error al actualizar" });
     }
 });
 
