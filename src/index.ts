@@ -249,6 +249,7 @@ app.post("/movimientos", async (req, res) => {
 app.get("/movimientos", async (req, res) => {
     try {
         const mes = req.query.mes; // ej: "2025-06"
+        const anio = req.query.anio;
 
         const resultado = await pool.query(`
             SELECT
@@ -258,8 +259,9 @@ app.get("/movimientos", async (req, res) => {
             FROM movimientos m
             INNER JOIN refacciones r ON r.id = m.refaccion_id
             ${mes ? "WHERE TO_CHAR(m.fecha, 'YYYY-MM') = $1" : ""}
+            ${anio ? "WHERE EXTRACT(YEAR FROM m.fecha) = $1" : ""}
             ORDER BY m.fecha DESC
-        `, mes ? [mes] : []);
+        `, mes ? [mes] : anio ? [anio] : []);
 
         res.json(resultado.rows);
     } catch (error) {
