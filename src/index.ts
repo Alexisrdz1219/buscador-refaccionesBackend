@@ -478,6 +478,41 @@ app.get("/inicio-datos", async (req, res) => {
     }
 });
 
+app.get("/filtros-busqueda", async (req, res) => {
+    try {
+        const { tit } = req.query;
+        if (!tit) return res.json({});
+
+        const resultado = await pool.query(`
+            SELECT
+                array_agg(DISTINCT tipoprod) FILTER (WHERE tipoprod IS NOT NULL AND TRIM(tipoprod) != '') AS tipos,
+                array_agg(DISTINCT medidas)  FILTER (WHERE medidas  IS NOT NULL AND TRIM(medidas)  != '') AS medidas,
+                array_agg(DISTINCT color)    FILTER (WHERE color    IS NOT NULL AND TRIM(color)    != '') AS colores,
+                array_agg(DISTINCT marca)    FILTER (WHERE marca    IS NOT NULL AND TRIM(marca)    != '') AS marcas,
+                array_agg(DISTINCT proveedor) FILTER (WHERE proveedor IS NOT NULL AND TRIM(proveedor) != '') AS proveedores
+            FROM refacciones
+            WHERE LOWER(nombreprod) LIKE LOWER($1)
+               OR LOWER(refinterna) LIKE LOWER($1)
+               OR LOWER(modelo)     LIKE LOWER($1)
+               OR LOWER(palclave)   LIKE LOWER($1)
+               OR LOWER(maquinamod) LIKE LOWER($1)
+               OR LOWER(maquinaesp) LIKE LOWER($1)
+        `, [`%${tit}%`]);
+
+        const row = resultado.rows[0];
+        res.json({
+            tipoprod:  (row.tipos       || []).sort(),
+            medidas:   (row.medidas     || []).sort(),
+            color:     (row.colores     || []).sort(),
+            marca:     (row.marcas      || []).sort(),
+            proveedor: (row.proveedores || []).sort(),
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({});
+    }
+});
 
 app.get("/refacciones", verificarSesion, async (req: any, res) => {
 
