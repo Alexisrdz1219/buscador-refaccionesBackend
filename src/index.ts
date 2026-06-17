@@ -2073,7 +2073,26 @@ app.post(
     if (tipo) { condiciones.push(`r.tipoprod = $${contador++}`); valores.push(tipo); }
     if (unidad) { condiciones.push(`r.unidad = $${contador++}`); valores.push(unidad); }
     if (palabras) { condiciones.push(`LOWER(r.palclave) LIKE LOWER($${contador++})`); valores.push(`%${palabras}%`); }
-
+  if (req.query.medidas) {
+    const vals = (req.query.medidas as string).split(",");
+    condiciones.push(`r.medidas = ANY($${contador++})`);
+    valores.push(vals);
+}
+if (req.query.color) {
+    const vals = (req.query.color as string).split(",");
+    condiciones.push(`r.color = ANY($${contador++})`);
+    valores.push(vals);
+}
+if (req.query.marca) {
+    const vals = (req.query.marca as string).split(",");
+    condiciones.push(`r.marca = ANY($${contador++})`);
+    valores.push(vals);
+}
+if (req.query.proveedor) {
+    const vals = (req.query.proveedor as string).split(",");
+    condiciones.push(`r.proveedor = ANY($${contador++})`);
+    valores.push(vals);
+}
     const where = condiciones.length ? "WHERE " + condiciones.join(" AND ") : "";
 
     const LIMITE = 20;
@@ -2113,6 +2132,8 @@ app.post(
     res.status(500).json({ datos: [], total: 0, pagina: 1, totalPaginas: 1 });
   }
 });
+
+
 
     app.get("/refacciones-metadata", async (req, res) => {
 
