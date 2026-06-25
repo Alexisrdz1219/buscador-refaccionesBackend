@@ -2209,7 +2209,7 @@ app.get("/orings/filtros", async (req, res) => {
                 array_agg(DISTINCT medida_interior) FILTER (WHERE medida_interior IS NOT NULL AND TRIM(medida_interior) != '') AS medidas_int,
                 array_agg(DISTINCT medida_exterior) FILTER (WHERE medida_exterior IS NOT NULL AND TRIM(medida_exterior) != '') AS medidas_ext,
                 array_agg(DISTINCT grosor)          FILTER (WHERE grosor          IS NOT NULL AND TRIM(grosor)          != '') AS grosores,
-                array_agg(DISTINCT molde)           FILTER (WHERE molde           IS NOT NULL AND TRIM(molde)           != '') AS moldes
+array_agg(DISTINCT molde) FILTER (WHERE molde IS NOT NULL AND TRIM(molde) != '') AS moldes
             FROM refacciones
             ${where}
         `, valores);
