@@ -2151,11 +2151,11 @@ app.get("/orings", async (req, res) => {
         }
 
         if (molde) {
-            const vals = (molde as string).split(",");
-            const subs = vals.map(() => `TRIM(r.molde) ILIKE TRIM($${contador++})`);
-            condiciones.push(`(${subs.join(" OR ")})`);
-            vals.forEach(v => valores.push(v.trim()));
-        }
+    const vals = (molde as string).split(",");
+    const subs = vals.map(() => `r.molde ILIKE $${contador++}`);
+    condiciones.push(`(${subs.join(" OR ")})`);
+    vals.forEach(v => valores.push(`%${v.trim()}%`)); // ← agrega % para buscar dentro del string
+}
 
         const where = "WHERE " + condiciones.join(" AND ");
         const LIMITE = 24;
