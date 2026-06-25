@@ -729,24 +729,18 @@ app.post("/refacciones/:id/tags", async (req, res) => {
 
     app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
-
-      log("INFO", "DEBUG archivo", {
-      existeFile: !!req.file,
-      size: req.file?.size,
-      mimetype: req.file?.mimetype,
-      tieneBuffer: !!req.file?.buffer
-    }, "/debug");
+      log("INFO", "DEBUG archivo", { existeFile: !!req.file, size: req.file?.size, mimetype: req.file?.mimetype, tieneBuffer: !!req.file?.buffer }, "/debug");
 
       try {
         const { id } = req.params;
         const body = req.body || {};
 
         if (body.eliminarImagen === "true") {
-      await pool.query(
-        "UPDATE refacciones SET imagen=NULL WHERE id=$1",
-        [id]
-      );
-    }
+        await pool.query(
+          "UPDATE refacciones SET imagen=NULL WHERE id=$1",
+          [id]
+        );
+      }
         // 🔹 compatibilidad viene como STRING
         let compatibilidad: number[] = [];
         if (body.compatibilidad) {
@@ -761,20 +755,20 @@ app.post("/refacciones/:id/tags", async (req, res) => {
         const { compatibilidad: _c, imagenUrl: _iu, inputTags: _it, ...campos } = body;
 
         //  NORMALIZAR ALERTA
-if (campos.alerta_activa !== undefined) {
-  campos.alerta_activa = campos.alerta_activa === "true";
-}
+        if (campos.alerta_activa !== undefined) {
+          campos.alerta_activa = campos.alerta_activa === "true";
+        }
 
-if (campos.stock_minimo !== undefined) {
-  campos.stock_minimo = Number(campos.stock_minimo) || 0;
-}
-//  VALIDACIÓN
-if (campos.stock_minimo < 0) {
-  return res.status(400).json({
-    ok: false,
-    error: "El stock mínimo no puede ser negativo"
-  });
-}
+        if (campos.stock_minimo !== undefined) {
+          campos.stock_minimo = Number(campos.stock_minimo) || 0;
+        }
+        //  VALIDACIÓN
+        if (campos.stock_minimo < 0) {
+          return res.status(400).json({
+            ok: false,
+            error: "El stock mínimo no puede ser negativo"
+          });
+        }
 
 
         const nummaquina = body.nummaquina || null;
@@ -790,63 +784,30 @@ if (campos.stock_minimo < 0) {
         }
 
         // 🔹 si hay archivo → subir 
-      if (req.file) {
-      if (!req.file.buffer) {
-        throw new Error("Buffer de archivo inválido");
-      }
+        if (req.file) {
+          if (!req.file.buffer) {
+            throw new Error("Buffer de archivo inválido");
+          }
 
-      // const ext = req.file.originalname.split(".").pop();
-      // const fileName = `refaccion_${Date.now()}.${ext}`;
+          const ext = req.file.originalname.split(".").pop();
+          const fileName = `refaccion_${Date.now()}.${ext}`;
 
-      const ext = req.file.originalname.split(".").pop();
-const fileName = `refaccion_${Date.now()}.${ext}`;
+          //  COMPRESIÓN AQUÍ
+          const compressedBuffer = await sharp(req.file.buffer)
+          .rotate()
+          .resize(800) // ancho máximo (ajústalo: 400, 600, 800)
+          .jpeg({ quality: 70 }) // calidad (60–80 recomendado)
+          .toBuffer();
+          //  SUBIR IMAGEN YA OPTIMIZADA
+          const result = await s3.upload({
+            Bucket: process.env.AWS_BUCKET_NAME!,
+            Key: fileName,
+            Body: compressedBuffer,
+            ContentType: "image/jpeg"
+          }).promise();
 
-// const result = await s3.upload({
-//   Bucket: process.env.AWS_BUCKET_NAME!,
-//   Key: fileName,
-//   Body: req.file.buffer,
-//   ContentType: req.file.mimetype
-// }).promise();
-
-//  COMPRESIÓN AQUÍ
-const compressedBuffer = await sharp(req.file.buffer)
-.rotate()
-  .resize(800) // ancho máximo (ajústalo: 400, 600, 800)
-  .jpeg({ quality: 70 }) // calidad (60–80 recomendado)
-  .toBuffer();
-
-//  SUBIR IMAGEN YA OPTIMIZADA
-const result = await s3.upload({
-  Bucket: process.env.AWS_BUCKET_NAME!,
-  Key: fileName,
-  Body: compressedBuffer,
-  ContentType: "image/jpeg"
-}).promise();
-
-campos.imagen = result.Location;
-
-
-
-
-
-      // const { error } = await supabase.storage
-      //   .from("refacciones")
-      //   .upload(fileName, req.file.buffer, {
-      //     contentType: req.file.mimetype,
-      //     upsert: true
-      //   });
-
-      // if (error) {
-      //   log("ERROR", "Error subiendo a Supabase", error, "/upload");
-      //   throw error;
-      // }
-
-      // const { data } = supabase.storage
-      //   .from("refacciones")
-      //   .getPublicUrl(fileName);
-
-      // campos.imagen = data.publicUrl;
-    }
+          campos.imagen = result.Location;
+          }
 
         //  si NO hay archivo pero sí URL válida
         else if (typeof imagenUrl === "string" && imagenUrl.trim() !== "") {
@@ -1706,26 +1667,21 @@ app.post(
         res.status(500).json({ ok:false });
       }
     });
-    // refacciones/:id
+   
+    
     app.get("/refacciones/:id", async (req, res) => {
-
       try {
         const { id } = req.params;
-          // EL QUE ME ESTA GENERANOD MUCHAS COSAS
         const result = await pool.query(`
-  SELECT 
-    r.*,
-    COALESCE(
-      json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
-      '[]'
-    ) AS tags
-  FROM refacciones r
-  LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
-  LEFT JOIN tags t ON t.id = rt.tag_id
-  WHERE r.id = $1
-  GROUP BY r.id
-`, [id]
-);
+          SELECT r.*, COALESCE(
+          json_agg(t.nombre) FILTER (WHERE t.nombre IS NOT NULL), '[]') AS tags
+          FROM refacciones r
+          LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
+          LEFT JOIN tags t ON t.id = rt.tag_id
+          WHERE r.id = $1
+          GROUP BY r.id
+        `, [id]
+        );
         
 
         if (result.rows.length === 0) {
@@ -1743,20 +1699,16 @@ app.post(
 
         res.json(refaccion);
       } catch (error) {
-  const err = error as Error;
+  
+        const err = error as Error;
+        console.log("❌ ERROR REAL:", err.message);
+        console.log("STACK:", err.stack);
+        log("ERROR", "Error capturado", { message: err.message, stack: err.stack }, "/server");
 
-  console.log("❌ ERROR REAL:", err.message);
-  console.log("STACK:", err.stack);
-
-  log("ERROR", "Error capturado", {
-    message: err.message,
-    stack: err.stack
-  }, "/server");
-
-  res.status(500).json({ ok: false, error: err.message });
-}
+        res.status(500).json({ ok: false, error: err.message });
+      }
     });
-    // LISTA DE MAQUINAS ORDENADAS POR CATEGORIA PRINCIPAL Y MODELO
+
     app.get("/maquinas", async (req, res) => {
       try {
         const r = await pool.query(`
@@ -2150,6 +2102,133 @@ if (req.query.proveedor) {
         unidades: unidades.rows.map(u => u.unidad)
       });
     });
+
+// Buscar orings con filtros
+app.get("/orings", async (req, res) => {
+    try {
+        const { q, material, medida_interior, medida_exterior, grosor, molde, pagina = "1" } = req.query;
+
+        let condiciones: string[] = ["r.es_oring = true"];
+        let valores: any[] = [];
+        let contador = 1;
+
+        if (q) {
+            condiciones.push(`(
+                LOWER(r.nombreprod) LIKE LOWER($${contador}) OR
+                LOWER(r.refinterna) LIKE LOWER($${contador}) OR
+                LOWER(r.palclave)   LIKE LOWER($${contador})
+            )`);
+            valores.push(`%${q}%`);
+            contador++;
+        }
+
+        if (material) {
+            const vals = (material as string).split(",");
+            const subs = vals.map(() => `TRIM(r.material) ILIKE TRIM($${contador++})`);
+            condiciones.push(`(${subs.join(" OR ")})`);
+            vals.forEach(v => valores.push(v.trim()));
+        }
+
+        if (medida_interior) {
+            const vals = (medida_interior as string).split(",");
+            const subs = vals.map(() => `TRIM(r.medida_interior) ILIKE TRIM($${contador++})`);
+            condiciones.push(`(${subs.join(" OR ")})`);
+            vals.forEach(v => valores.push(v.trim()));
+        }
+
+        if (medida_exterior) {
+            const vals = (medida_exterior as string).split(",");
+            const subs = vals.map(() => `TRIM(r.medida_exterior) ILIKE TRIM($${contador++})`);
+            condiciones.push(`(${subs.join(" OR ")})`);
+            vals.forEach(v => valores.push(v.trim()));
+        }
+
+        if (grosor) {
+            const vals = (grosor as string).split(",");
+            const subs = vals.map(() => `TRIM(r.grosor) ILIKE TRIM($${contador++})`);
+            condiciones.push(`(${subs.join(" OR ")})`);
+            vals.forEach(v => valores.push(v.trim()));
+        }
+
+        if (molde) {
+            const vals = (molde as string).split(",");
+            const subs = vals.map(() => `TRIM(r.molde) ILIKE TRIM($${contador++})`);
+            condiciones.push(`(${subs.join(" OR ")})`);
+            vals.forEach(v => valores.push(v.trim()));
+        }
+
+        const where = "WHERE " + condiciones.join(" AND ");
+        const LIMITE = 24;
+        const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
+        const offset = (paginaNum - 1) * LIMITE;
+
+        const countResult = await pool.query(`
+            SELECT COUNT(DISTINCT r.id) FROM refacciones r ${where}
+        `, valores);
+        const total = parseInt(countResult.rows[0].count);
+
+        const result = await pool.query(`
+            SELECT r.id, r.nombreprod, r.refinterna, r.imagen, r.cantidad, r.unidad,
+                   r.ubicacion, r.material, r.medida_interior, r.medida_exterior,
+                   r.grosor, r.molde, r.palclave
+            FROM refacciones r
+            ${where}
+            ORDER BY r.nombreprod ASC
+            LIMIT $${contador} OFFSET $${contador + 1}
+        `, [...valores, LIMITE, offset]);
+
+        res.json({
+            datos: result.rows,
+            total,
+            pagina: paginaNum,
+            totalPaginas: Math.ceil(total / LIMITE)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ datos: [], total: 0, pagina: 1, totalPaginas: 1 });
+    }
+});
+
+// Filtros disponibles para orings
+app.get("/orings/filtros", async (req, res) => {
+    try {
+        const { q } = req.query;
+
+        let where = "WHERE es_oring = true";
+        let valores: any[] = [];
+
+        if (q) {
+            where += ` AND (LOWER(nombreprod) LIKE LOWER($1) OR LOWER(refinterna) LIKE LOWER($1))`;
+            valores.push(`%${q}%`);
+        }
+
+        const resultado = await pool.query(`
+            SELECT
+                array_agg(DISTINCT material)        FILTER (WHERE material        IS NOT NULL AND TRIM(material)        != '') AS materiales,
+                array_agg(DISTINCT medida_interior) FILTER (WHERE medida_interior IS NOT NULL AND TRIM(medida_interior) != '') AS medidas_int,
+                array_agg(DISTINCT medida_exterior) FILTER (WHERE medida_exterior IS NOT NULL AND TRIM(medida_exterior) != '') AS medidas_ext,
+                array_agg(DISTINCT grosor)          FILTER (WHERE grosor          IS NOT NULL AND TRIM(grosor)          != '') AS grosores,
+                array_agg(DISTINCT molde)           FILTER (WHERE molde           IS NOT NULL AND TRIM(molde)           != '') AS moldes
+            FROM refacciones
+            ${where}
+        `, valores);
+
+        const row = resultado.rows[0];
+        res.json({
+            material:        (row.materiales  || []).sort(),
+            medida_interior: (row.medidas_int || []).sort(),
+            medida_exterior: (row.medidas_ext || []).sort(),
+            grosor:          (row.grosores    || []).sort(),
+            molde:           (row.moldes      || []).sort(),
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({});
+    }
+});
+
 
     app.post("/usos", async (req, res) => {
   const { refaccion_id, area_maquina, lleva_oring, orings } = req.body;
