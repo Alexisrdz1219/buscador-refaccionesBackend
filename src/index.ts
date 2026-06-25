@@ -2191,6 +2191,43 @@ app.get("/orings", async (req, res) => {
 });
 
 // Filtros disponibles para orings
+// app.get("/orings/filtros", async (req, res) => {
+//     try {
+//         const { q } = req.query;
+
+//         let where = "WHERE es_oring = true";
+//         let valores: any[] = [];
+
+//         if (q) {
+//             where += ` AND (LOWER(nombreprod) LIKE LOWER($1) OR LOWER(refinterna) LIKE LOWER($1))`;
+//             valores.push(`%${q}%`);
+//         }
+
+//         const resultado = await pool.query(`
+//             SELECT
+//                 array_agg(DISTINCT material)        FILTER (WHERE material        IS NOT NULL AND TRIM(material)        != '') AS materiales,
+//                 array_agg(DISTINCT medida_interior) FILTER (WHERE medida_interior IS NOT NULL AND TRIM(medida_interior) != '') AS medidas_int,
+//                 array_agg(DISTINCT medida_exterior) FILTER (WHERE medida_exterior IS NOT NULL AND TRIM(medida_exterior) != '') AS medidas_ext,
+//                 array_agg(DISTINCT grosor)          FILTER (WHERE grosor          IS NOT NULL AND TRIM(grosor)          != '') AS grosores,
+// array_agg(DISTINCT molde) FILTER (WHERE molde IS NOT NULL AND TRIM(molde) != '') AS moldes
+//             FROM refacciones
+//             ${where}
+//         `, valores);
+
+//         const row = resultado.rows[0];
+//         res.json({
+//             material:        (row.materiales  || []).sort(),
+//             medida_interior: (row.medidas_int || []).sort(),
+//             medida_exterior: (row.medidas_ext || []).sort(),
+//             grosor:          (row.grosores    || []).sort(),
+//             molde:           moldesUnicos,  // ← ya separados
+//         });
+
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({});
+//     }
+// });
 app.get("/orings/filtros", async (req, res) => {
     try {
         const { q } = req.query;
@@ -2209,18 +2246,25 @@ app.get("/orings/filtros", async (req, res) => {
                 array_agg(DISTINCT medida_interior) FILTER (WHERE medida_interior IS NOT NULL AND TRIM(medida_interior) != '') AS medidas_int,
                 array_agg(DISTINCT medida_exterior) FILTER (WHERE medida_exterior IS NOT NULL AND TRIM(medida_exterior) != '') AS medidas_ext,
                 array_agg(DISTINCT grosor)          FILTER (WHERE grosor          IS NOT NULL AND TRIM(grosor)          != '') AS grosores,
-array_agg(DISTINCT molde) FILTER (WHERE molde IS NOT NULL AND TRIM(molde) != '') AS moldes
+                array_agg(DISTINCT molde)           FILTER (WHERE molde           IS NOT NULL AND TRIM(molde)           != '') AS moldes
             FROM refacciones
             ${where}
         `, valores);
 
         const row = resultado.rows[0];
+
+        // ← agrega esto antes del res.json
+        const moldesTodos = (row.moldes || [])
+            .flatMap((m: string) => m.split("|").map((v: string) => v.trim()))
+            .filter((v: string) => v !== "");
+        const moldesUnicos = [...new Set(moldesTodos)].sort();
+
         res.json({
             material:        (row.materiales  || []).sort(),
             medida_interior: (row.medidas_int || []).sort(),
             medida_exterior: (row.medidas_ext || []).sort(),
             grosor:          (row.grosores    || []).sort(),
-            molde:           (row.moldes      || []).sort(),
+            molde:           moldesUnicos,
         });
 
     } catch (error) {
@@ -2228,7 +2272,6 @@ array_agg(DISTINCT molde) FILTER (WHERE molde IS NOT NULL AND TRIM(molde) != '')
         res.status(500).json({});
     }
 });
-
 
     app.post("/usos", async (req, res) => {
   const { refaccion_id, area_maquina, lleva_oring, orings } = req.body;
