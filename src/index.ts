@@ -2356,7 +2356,27 @@ app.get("/orings", async (req, res) => {
   }
 });
 
+app.get("/stats/proveedores", async (req, res) => {
+    try {
+        const resultado = await pool.query(`
+            SELECT 
+                proveedor,
+                COUNT(*) AS total_productos,
+                SUM(cantidad) AS total_piezas
+            FROM refacciones
+            WHERE proveedor IS NOT NULL 
+              AND TRIM(proveedor) != ''
+            GROUP BY proveedor
+            ORDER BY total_productos DESC
+            LIMIT 10
+        `);
 
+        res.json(resultado.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json([]);
+    }
+});
 
 app.put("/refacciones/envio/:id", async (req, res) => {
 
