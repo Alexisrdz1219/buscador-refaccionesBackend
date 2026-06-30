@@ -1802,6 +1802,152 @@ app.post(
     //   }
       
     // });
+    
+    // Obtener todos los proveedores
+app.get("/proveedores", async (req, res) => {
+    try {
+        const resultado = await pool.query(`
+            SELECT * FROM proveedores ORDER BY nombre ASC
+        `);
+        res.json(resultado.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Obtener un proveedor por id
+app.get("/proveedores/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const resultado = await pool.query(`SELECT * FROM proveedores WHERE id = $1`, [id]);
+        if (!resultado.rows.length) return res.status(404).json({ error: "No encontrado" });
+        res.json(resultado.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Crear proveedor
+app.post("/proveedores", upload.single("imagen"), async (req, res) => {
+    try {
+        const {
+            nombre, ubicacion, pagina_web, telefono, correo,
+            contacto1_nombre, contacto1_numero,
+            contacto2_nombre, contacto2_numero,
+            horario, descripcion
+        } = req.body;
+
+        let imagen = null;
+
+        if (req.file) {
+            const ext = req.file.originalname.split(".").pop();
+            const fileName = `proveedor_${Date.now()}.${ext}`;
+            const compressedBuffer = await sharp(req.file.buffer)
+                .resize(600)
+                .jpeg({ quality: 75 })
+                .toBuffer();
+            const result = await s3.upload({
+                Bucket: process.env.AWS_BUCKET_NAME!,
+                Key: fileName,
+                Body: compressedBuffer,
+                ContentType: "image/jpeg"
+            }).promise();
+            imagen = result.Location;
+        }
+
+        const resultado = await pool.query(`
+            INSERT INTO proveedores
+            (nombre, ubicacion, pagina_web, telefono, correo,
+             contacto1_nombre, contacto1_numero,
+             contacto2_nombre, contacto2_numero,
+             horario, imagen, descripcion)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            RETURNING *
+        `, [nombre, ubicacion, pagina_web, telefono, correo,
+            contacto1_nombre, contacto1_numero,
+            contacto2_nombre, contacto2_numero,
+            horario, imagen, descripcion]);
+
+        res.json({ ok: true, proveedor: resultado.rows[0] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Actualizar proveedor
+app.put("/proveedores/:id", upload.single("imagen"), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            nombre, ubicacion, pagina_web, telefono, correo,
+            contacto1_nombre, contacto1_numero,
+            contacto2_nombre, contacto2_numero,
+            horario, descripcion, eliminarImagen
+        } = req.body;
+
+        let imagen = undefined;
+
+        if (eliminarImagen === "true") {
+            imagen = null;
+        } else if (req.file) {
+            const ext = req.file.originalname.split(".").pop();
+            const fileName = `proveedor_${Date.now()}.${ext}`;
+            const compressedBuffer = await sharp(req.file.buffer)
+                .resize(600)
+                .jpeg({ quality: 75 })
+                .toBuffer();
+            const result = await s3.upload({
+                Bucket: process.env.AWS_BUCKET_NAME!,
+                Key: fileName,
+                Body: compressedBuffer,
+                ContentType: "image/jpeg"
+            }).promise();
+            imagen = result.Location;
+        }
+
+        const setImagen = imagen !== undefined ? ", imagen = $13" : "";
+        const valores = [
+            nombre, ubicacion, pagina_web, telefono, correo,
+            contacto1_nombre, contacto1_numero,
+            contacto2_nombre, contacto2_numero,
+            horario, descripcion, id
+        ];
+        if (imagen !== undefined) valores.splice(11, 0, imagen);
+
+        await pool.query(`
+            UPDATE proveedores SET
+                nombre = $1, ubicacion = $2, pagina_web = $3,
+                telefono = $4, correo = $5,
+                contacto1_nombre = $6, contacto1_numero = $7,
+                contacto2_nombre = $8, contacto2_numero = $9,
+                horario = $10, descripcion = $11,
+                updated_at = now()
+                ${setImagen}
+            WHERE id = $${imagen !== undefined ? 13 : 12}
+        `, valores);
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Eliminar proveedor
+app.delete("/proveedores/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query(`DELETE FROM proveedores WHERE id = $1`, [id]);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+    
     app.get("/refacciones-por-maquinamod", async (req, res) => {
   try {
     const { maquinamod } = req.query;
