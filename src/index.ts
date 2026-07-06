@@ -1878,10 +1878,67 @@ app.post("/proveedores", upload.single("imagen"), async (req, res) => {
 });
 
 // Actualizar proveedor
+// app.put("/proveedores/:id", upload.single("imagen"), async (req, res) => {
+//     try {
+//       console.log("BODY:", req.body);      // ← agrega esto
+//         console.log("FILE:", req.file);
+//         const { id } = req.params;
+//         const {
+//             nombre, ubicacion, pagina_web, telefono, correo,
+//             contacto1_nombre, contacto1_numero,
+//             contacto2_nombre, contacto2_numero,
+//             horario, descripcion, eliminarImagen
+//         } = req.body;
+
+//         let imagen = undefined;
+
+//         if (eliminarImagen === "true") {
+//             imagen = null;
+//         } else if (req.file) {
+//             const ext = req.file.originalname.split(".").pop();
+//             const fileName = `proveedor_${Date.now()}.${ext}`;
+//             const compressedBuffer = await sharp(req.file.buffer)
+//                 .resize(600)
+//                 .jpeg({ quality: 75 })
+//                 .toBuffer();
+//             const result = await s3.upload({
+//                 Bucket: process.env.AWS_BUCKET_NAME!,
+//                 Key: fileName,
+//                 Body: compressedBuffer,
+//                 ContentType: "image/jpeg"
+//             }).promise();
+//             imagen = result.Location;
+//         }
+
+//         const setImagen = imagen !== undefined ? ", imagen = $13" : "";
+//         const valores = [
+//             nombre, ubicacion, pagina_web, telefono, correo,
+//             contacto1_nombre, contacto1_numero,
+//             contacto2_nombre, contacto2_numero,
+//             horario, descripcion, id
+//         ];
+//         if (imagen !== undefined) valores.splice(11, 0, imagen);
+
+//         await pool.query(`
+//             UPDATE proveedores SET
+//                 nombre = $1, ubicacion = $2, pagina_web = $3,
+//                 telefono = $4, correo = $5,
+//                 contacto1_nombre = $6, contacto1_numero = $7,
+//                 contacto2_nombre = $8, contacto2_numero = $9,
+//                 horario = $10, descripcion = $11,
+//                 updated_at = now()
+//                 ${setImagen}
+//             WHERE id = $${imagen !== undefined ? 13 : 12}
+//         `, valores);
+
+//         res.json({ ok: true });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ error: "Error servidor" });
+//     }
+// });
 app.put("/proveedores/:id", upload.single("imagen"), async (req, res) => {
     try {
-      console.log("BODY:", req.body);      // ← agrega esto
-        console.log("FILE:", req.file);
         const { id } = req.params;
         const {
             nombre, ubicacion, pagina_web, telefono, correo,
@@ -1890,7 +1947,12 @@ app.put("/proveedores/:id", upload.single("imagen"), async (req, res) => {
             horario, descripcion, eliminarImagen
         } = req.body;
 
-        let imagen = undefined;
+        console.log("BODY:", req.body);
+        console.log("FILE:", req.file?.originalname);
+
+        // Obtener imagen actual
+        const actual = await pool.query("SELECT imagen FROM proveedores WHERE id=$1", [id]);
+        let imagen = actual.rows[0]?.imagen ?? null;
 
         if (eliminarImagen === "true") {
             imagen = null;
@@ -1910,30 +1972,33 @@ app.put("/proveedores/:id", upload.single("imagen"), async (req, res) => {
             imagen = result.Location;
         }
 
-        const setImagen = imagen !== undefined ? ", imagen = $13" : "";
-        const valores = [
+        await pool.query(`
+            UPDATE proveedores SET
+                nombre = $1,
+                ubicacion = $2,
+                pagina_web = $3,
+                telefono = $4,
+                correo = $5,
+                contacto1_nombre = $6,
+                contacto1_numero = $7,
+                contacto2_nombre = $8,
+                contacto2_numero = $9,
+                horario = $10,
+                descripcion = $11,
+                imagen = $12,
+                updated_at = now()
+            WHERE id = $13
+        `, [
             nombre, ubicacion, pagina_web, telefono, correo,
             contacto1_nombre, contacto1_numero,
             contacto2_nombre, contacto2_numero,
-            horario, descripcion, id
-        ];
-        if (imagen !== undefined) valores.splice(11, 0, imagen);
-
-        await pool.query(`
-            UPDATE proveedores SET
-                nombre = $1, ubicacion = $2, pagina_web = $3,
-                telefono = $4, correo = $5,
-                contacto1_nombre = $6, contacto1_numero = $7,
-                contacto2_nombre = $8, contacto2_numero = $9,
-                horario = $10, descripcion = $11,
-                updated_at = now()
-                ${setImagen}
-            WHERE id = $${imagen !== undefined ? 13 : 12}
-        `, valores);
+            horario, descripcion, imagen, id
+        ]);
 
         res.json({ ok: true });
     } catch (error) {
-        console.error(error);
+        const err = error as Error;
+        console.error("ERROR PUT proveedor:", err.message);
         res.status(500).json({ error: "Error servidor" });
     }
 });
