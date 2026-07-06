@@ -1880,6 +1880,8 @@ app.post("/proveedores", upload.single("imagen"), async (req, res) => {
 // Actualizar proveedor
 app.put("/proveedores/:id", upload.single("imagen"), async (req, res) => {
     try {
+      console.log("BODY:", req.body);      // ← agrega esto
+        console.log("FILE:", req.file);
         const { id } = req.params;
         const {
             nombre, ubicacion, pagina_web, telefono, correo,
