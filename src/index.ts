@@ -2014,7 +2014,68 @@ app.delete("/proveedores/:id", async (req, res) => {
         res.status(500).json({ error: "Error servidor" });
     }
 });
-    
+
+// Obtener todas las refacciones con stock bajo
+app.get("/stock-bajo", async (req, res) => {
+    try {
+        const resultado = await pool.query(`
+            SELECT
+                id, nombreprod, refinterna, modelo, marca,
+                cantidad, stock_minimo, ubicacion, imagen,
+                estado_stock, fecha_alerta, unidad,
+                EXTRACT(DAY FROM now() - COALESCE(fecha_alerta, created_at))::int AS dias_en_alerta
+            FROM refacciones
+            WHERE alerta_activa = true
+            ORDER BY nombreprod ASC
+        `);
+        res.json(resultado.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Actualizar estado, cantidad y stock mínimo
+app.put("/stock-bajo/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estado_stock, cantidad, stock_minimo } = req.body;
+
+        await pool.query(`
+            UPDATE refacciones SET
+                estado_stock = COALESCE($1, estado_stock),
+                cantidad     = COALESCE($2, cantidad),
+                stock_minimo = COALESCE($3, stock_minimo),
+                updated_at   = now()
+            WHERE id = $4
+        `, [estado_stock, cantidad, stock_minimo, id]);
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Resumen para las tarjetas
+app.get("/stock-bajo/resumen", async (req, res) => {
+    try {
+        const resultado = await pool.query(`
+            SELECT
+                COUNT(*)                                           AS total,
+                COUNT(*) FILTER (WHERE estado_stock = 'urgente')  AS urgentes,
+                COUNT(*) FILTER (WHERE estado_stock = 'en_envio') AS en_envio,
+                COUNT(*) FILTER (WHERE cantidad = 0)              AS sin_stock
+            FROM refacciones
+            WHERE alerta_activa = true
+        `);
+        res.json(resultado.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
     app.get("/refacciones-por-maquinamod", async (req, res) => {
   try {
     const { maquinamod } = req.query;
