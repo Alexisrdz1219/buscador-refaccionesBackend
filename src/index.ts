@@ -173,10 +173,11 @@ app.get("/buscar-sugerencias", async (req, res) => {
         if (!q || q.length < 2) return res.json([]);
 
         const resultado = await pool.query(`
-            SELECT id, refInterna, nombreprod, ubicacion, imagen
+            SELECT id, refInterna, nombreprod, nombre_comun, ubicacion, imagen
             FROM refacciones
             WHERE TRIM(refInterna) ILIKE $1
                OR TRIM(nombreprod) ILIKE $1
+               OR TRIM(nombre_comun) ILIKE TRIM($1)
             LIMIT 8
         `, [`%${q}%`]);
 
@@ -2348,6 +2349,7 @@ app.get("/stock-bajo/resumen", async (req, res) => {
         LOWER(r.palclave)     LIKE LOWER($${contador}) OR
         LOWER(r.maquinamod)   LIKE LOWER($${contador}) OR
         LOWER(r.maquinaesp)   LIKE LOWER($${contador}) OR
+        LOWER(r.nombre_comun) LIKE LOWER($${contador}) OR
         EXISTS (
             SELECT 1 FROM refacciones_tags rt2
             JOIN tags t2 ON t2.id = rt2.tag_id
