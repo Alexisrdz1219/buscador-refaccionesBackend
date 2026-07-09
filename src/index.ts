@@ -588,6 +588,73 @@ app.post("/refacciones/:id/tags", async (req, res) => {
   }
 });
 
+
+app.post("/refacciones", upload.single("imagen"), async (req, res) => {
+    try {
+        const {
+            nombreprod, categoriaprin, maquinamod, maquinaesp,
+            tipoprod, modelo, refinterna, palclave, cantidad,
+            unidad, ubicacion, observacion, nummaquina,
+            completada, destacada, medidas, especificaciones,
+            en_envio, alerta_activa, stock_minimo, tipo,
+            color, marca, proveedor, es_oring,
+            material, medida_interior, medida_exterior, grosor, molde
+        } = req.body;
+
+        let imagen = null;
+        if (req.file) {
+            const ext = req.file.originalname.split(".").pop();
+            const fileName = `refaccion_${Date.now()}.${ext}`;
+            const compressedBuffer = await sharp(req.file.buffer)
+                .rotate()
+                .resize(800)
+                .jpeg({ quality: 70 })
+                .toBuffer();
+            const result = await s3.upload({
+                Bucket: process.env.AWS_BUCKET_NAME!,
+                Key: fileName,
+                Body: compressedBuffer,
+                ContentType: "image/jpeg"
+            }).promise();
+            imagen = result.Location;
+        }
+
+        const resultado = await pool.query(`
+            INSERT INTO refacciones (
+                nombreprod, categoriaprin, maquinamod, maquinaesp,
+                tipoprod, modelo, refinterna, palclave, cantidad,
+                unidad, ubicacion, observacion, imagen, nummaquina,
+                completada, destacada, medidas, especificaciones,
+                en_envio, alerta_activa, stock_minimo, tipo,
+                color, marca, proveedor, es_oring,
+                material, medida_interior, medida_exterior, grosor, molde,
+                origen
+            ) VALUES (
+                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+                $15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,
+                $27,$28,$29,$30,$31,'manual'
+            ) RETURNING id, refinterna
+        `, [
+            nombreprod, categoriaprin, maquinamod, maquinaesp,
+            tipoprod, modelo, refinterna, palclave, Number(cantidad) || 0,
+            unidad, ubicacion, observacion, imagen, nummaquina,
+            completada === "true", destacada === "true",
+            medidas, especificaciones,
+            en_envio === "true", alerta_activa === "true",
+            Number(stock_minimo) || 0, tipo || "refaccion",
+            color, marca, proveedor, es_oring === "true",
+            material, medida_interior, medida_exterior, grosor, molde
+        ]);
+
+        res.json({ ok: true, id: resultado.rows[0].id, refinterna: resultado.rows[0].refinterna });
+
+    } catch (error) {
+        const err = error as Error;
+        console.error("ERROR POST refaccion:", err.message);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
     // Importar Excel
     app.post("/importar-excel", upload.single("file"), async (req, res) => {
       try {
