@@ -3258,21 +3258,21 @@ app.get("/refacciones-completitud", async (req, res) => {
         const total = parseInt(countResult.rows[0].count);
 
         const result = await pool.query(`
-            SELECT
-                id, nombreprod, refinterna, imagen, ubicacion,
-                tipoprod, modelo, proveedor, palclave, unidad,
-                CASE WHEN imagen    IS NOT NULL AND TRIM(imagen)    != '' THEN 1 ELSE 0 END +
-                CASE WHEN ubicacion IS NOT NULL AND TRIM(ubicacion) != '' THEN 1 ELSE 0 END +
-                CASE WHEN tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' THEN 1 ELSE 0 END +
-                CASE WHEN modelo    IS NOT NULL AND TRIM(modelo)    != '' THEN 1 ELSE 0 END +
-                CASE WHEN proveedor IS NOT NULL AND TRIM(proveedor) != '' THEN 1 ELSE 0 END +
-                CASE WHEN palclave  IS NOT NULL AND TRIM(palclave)  != '' THEN 1 ELSE 0 END
-                AS campos_llenos
-            FROM refacciones
-            WHERE 1=1 ${whereExtra} ${busqueda}
-            ORDER BY campos_llenos ASC, nombreprod ASC
-            LIMIT $1 OFFSET $2
-        `, [LIMITE, offset]);
+    SELECT
+        id, nombreprod, refinterna, imagen, ubicacion,
+        tipoprod, modelo, proveedor, palclave, unidad,
+        CASE WHEN imagen    IS NOT NULL AND TRIM(imagen)    != '' THEN 1 ELSE 0 END +
+        CASE WHEN ubicacion IS NOT NULL AND TRIM(ubicacion) != '' THEN 1 ELSE 0 END +
+        CASE WHEN tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' THEN 1 ELSE 0 END +
+        CASE WHEN modelo    IS NOT NULL AND TRIM(modelo)    != '' THEN 1 ELSE 0 END +
+        CASE WHEN proveedor IS NOT NULL AND TRIM(proveedor) != '' THEN 1 ELSE 0 END +
+        CASE WHEN palclave  IS NOT NULL AND TRIM(palclave)  != '' THEN 1 ELSE 0 END
+        AS campos_llenos
+    FROM refacciones
+    WHERE 1=1 ${whereExtra} ${busqueda}
+    ${(q as string) ? "ORDER BY nombreprod ASC" : "ORDER BY campos_llenos ASC, nombreprod ASC"}
+    LIMIT $1 OFFSET $2
+`, [LIMITE, offset]);
 
         res.json({
             datos: result.rows,
