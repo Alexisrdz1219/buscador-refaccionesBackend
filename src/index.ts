@@ -3228,14 +3228,14 @@ app.get("/refacciones-completitud", async (req, res) => {
 
         let whereExtra = "";
         if (filtro === "incompletas") {
-            whereExtra = `AND NOT (
-                imagen IS NOT NULL AND TRIM(imagen) != '' AND
-                ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
-                tipoprod IS NOT NULL AND TRIM(tipoprod) != '' AND
-                modelo IS NOT NULL AND TRIM(modelo) != '' AND
-                proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
-                palclave IS NOT NULL AND TRIM(palclave) != ''
-            )`;
+    whereExtra = `AND NOT (
+        imagen    IS NOT NULL AND TRIM(imagen)    != '' AND
+        ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
+        tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' AND
+        modelo    IS NOT NULL AND TRIM(modelo)    != '' AND
+        proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
+        palclave  IS NOT NULL AND TRIM(palclave)  != ''
+    )`;
         } else if (filtro === "completas") {
             whereExtra = `AND (
                 imagen IS NOT NULL AND TRIM(imagen) != '' AND
