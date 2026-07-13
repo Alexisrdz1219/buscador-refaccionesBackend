@@ -3221,7 +3221,7 @@ import { Request, Response, NextFunction } from "express";
     // Refacciones con su % de completitud
 app.get("/refacciones-completitud", async (req, res) => {
     try {
-        const { pagina = "1", filtro = "todas", q = "" } = req.query;
+        const { pagina = "1", filtro = "todas", pct = "todas" } = req.query;
         const LIMITE = 50;
         const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
         const offset = (paginaNum - 1) * LIMITE;
@@ -3229,50 +3229,56 @@ app.get("/refacciones-completitud", async (req, res) => {
         let whereExtra = "";
         if (filtro === "incompletas") {
             whereExtra = `AND NOT (
-                imagen    IS NOT NULL AND TRIM(imagen)    != '' AND
+                imagen IS NOT NULL AND TRIM(imagen) != '' AND
                 ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
-                tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' AND
-                modelo    IS NOT NULL AND TRIM(modelo)    != '' AND
+                tipoprod IS NOT NULL AND TRIM(tipoprod) != '' AND
+                modelo IS NOT NULL AND TRIM(modelo) != '' AND
                 proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
-                palclave  IS NOT NULL AND TRIM(palclave)  != ''
+                palclave IS NOT NULL AND TRIM(palclave) != ''
             )`;
         } else if (filtro === "completas") {
             whereExtra = `AND (
-                imagen    IS NOT NULL AND TRIM(imagen)    != '' AND
+                imagen IS NOT NULL AND TRIM(imagen) != '' AND
                 ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
-                tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' AND
-                modelo    IS NOT NULL AND TRIM(modelo)    != '' AND
+                tipoprod IS NOT NULL AND TRIM(tipoprod) != '' AND
+                modelo IS NOT NULL AND TRIM(modelo) != '' AND
                 proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
-                palclave  IS NOT NULL AND TRIM(palclave)  != ''
+                palclave IS NOT NULL AND TRIM(palclave) != ''
             )`;
         }
 
-        // ← agrega búsqueda
-        const busqueda = q
-            ? `AND (LOWER(nombreprod) LIKE LOWER('%${(q as string).replace(/'/g, "''")}%') OR LOWER(refinterna) LIKE LOWER('%${(q as string).replace(/'/g, "''")}%'))`
-            : "";
+        // ← filtro por porcentaje
+        const camposExpr = `(
+            CASE WHEN imagen    IS NOT NULL AND TRIM(imagen)    != '' THEN 1 ELSE 0 END +
+            CASE WHEN ubicacion IS NOT NULL AND TRIM(ubicacion) != '' THEN 1 ELSE 0 END +
+            CASE WHEN tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' THEN 1 ELSE 0 END +
+            CASE WHEN modelo    IS NOT NULL AND TRIM(modelo)    != '' THEN 1 ELSE 0 END +
+            CASE WHEN proveedor IS NOT NULL AND TRIM(proveedor) != '' THEN 1 ELSE 0 END +
+            CASE WHEN palclave  IS NOT NULL AND TRIM(palclave)  != '' THEN 1 ELSE 0 END
+        )`;
+
+        let wherePct = "";
+        if (pct === "0")     wherePct = `AND ${camposExpr} = 0`;
+        if (pct === "1-33")  wherePct = `AND ${camposExpr} >= 1 AND ${camposExpr} <= 2`;
+        if (pct === "34-66") wherePct = `AND ${camposExpr} >= 3 AND ${camposExpr} <= 4`;  // 2-4 de 6
+        if (pct === "67-99") wherePct = `AND ${camposExpr} >= 4 AND ${camposExpr} <= 5`;  // 4-5 de 6
+        if (pct === "100")   wherePct = `AND ${camposExpr} = 6`;
 
         const countResult = await pool.query(`
-            SELECT COUNT(*) FROM refacciones WHERE 1=1 ${whereExtra} ${busqueda}
+            SELECT COUNT(*) FROM refacciones WHERE 1=1 ${whereExtra} ${wherePct}
         `);
         const total = parseInt(countResult.rows[0].count);
 
         const result = await pool.query(`
-    SELECT
-        id, nombreprod, refinterna, imagen, ubicacion,
-        tipoprod, modelo, proveedor, palclave, unidad,
-        CASE WHEN imagen    IS NOT NULL AND TRIM(imagen)    != '' THEN 1 ELSE 0 END +
-        CASE WHEN ubicacion IS NOT NULL AND TRIM(ubicacion) != '' THEN 1 ELSE 0 END +
-        CASE WHEN tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' THEN 1 ELSE 0 END +
-        CASE WHEN modelo    IS NOT NULL AND TRIM(modelo)    != '' THEN 1 ELSE 0 END +
-        CASE WHEN proveedor IS NOT NULL AND TRIM(proveedor) != '' THEN 1 ELSE 0 END +
-        CASE WHEN palclave  IS NOT NULL AND TRIM(palclave)  != '' THEN 1 ELSE 0 END
-        AS campos_llenos
-    FROM refacciones
-    WHERE 1=1 ${whereExtra} ${busqueda}
-    ${(q as string) ? "ORDER BY nombreprod ASC" : "ORDER BY campos_llenos ASC, nombreprod ASC"}
-    LIMIT $1 OFFSET $2
-`, [LIMITE, offset]);
+            SELECT
+                id, nombreprod, refinterna, imagen, ubicacion,
+                tipoprod, modelo, proveedor, palclave, unidad,
+                ${camposExpr} AS campos_llenos
+            FROM refacciones
+            WHERE 1=1 ${whereExtra} ${wherePct}
+            ORDER BY campos_llenos ASC, nombreprod ASC
+            LIMIT $1 OFFSET $2
+        `, [LIMITE, offset]);
 
         res.json({
             datos: result.rows,
