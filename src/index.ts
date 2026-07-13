@@ -3221,34 +3221,39 @@ import { Request, Response, NextFunction } from "express";
     // Refacciones con su % de completitud
 app.get("/refacciones-completitud", async (req, res) => {
     try {
-        const { pagina = "1", filtro = "todas" } = req.query;
+        const { pagina = "1", filtro = "todas", q = "" } = req.query;
         const LIMITE = 50;
         const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
         const offset = (paginaNum - 1) * LIMITE;
 
         let whereExtra = "";
         if (filtro === "incompletas") {
-    whereExtra = `AND NOT (
-        imagen    IS NOT NULL AND TRIM(imagen)    != '' AND
-        ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
-        tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' AND
-        modelo    IS NOT NULL AND TRIM(modelo)    != '' AND
-        proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
-        palclave  IS NOT NULL AND TRIM(palclave)  != ''
-    )`;
+            whereExtra = `AND NOT (
+                imagen    IS NOT NULL AND TRIM(imagen)    != '' AND
+                ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
+                tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' AND
+                modelo    IS NOT NULL AND TRIM(modelo)    != '' AND
+                proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
+                palclave  IS NOT NULL AND TRIM(palclave)  != ''
+            )`;
         } else if (filtro === "completas") {
             whereExtra = `AND (
-                imagen IS NOT NULL AND TRIM(imagen) != '' AND
+                imagen    IS NOT NULL AND TRIM(imagen)    != '' AND
                 ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
-                tipoprod IS NOT NULL AND TRIM(tipoprod) != '' AND
-                modelo IS NOT NULL AND TRIM(modelo) != '' AND
+                tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' AND
+                modelo    IS NOT NULL AND TRIM(modelo)    != '' AND
                 proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
-                palclave IS NOT NULL AND TRIM(palclave) != ''
+                palclave  IS NOT NULL AND TRIM(palclave)  != ''
             )`;
         }
 
+        // ← agrega búsqueda
+        const busqueda = q
+            ? `AND (LOWER(nombreprod) LIKE LOWER('%${(q as string).replace(/'/g, "''")}%') OR LOWER(refinterna) LIKE LOWER('%${(q as string).replace(/'/g, "''")}%'))`
+            : "";
+
         const countResult = await pool.query(`
-            SELECT COUNT(*) FROM refacciones WHERE 1=1 ${whereExtra}
+            SELECT COUNT(*) FROM refacciones WHERE 1=1 ${whereExtra} ${busqueda}
         `);
         const total = parseInt(countResult.rows[0].count);
 
@@ -3264,7 +3269,7 @@ app.get("/refacciones-completitud", async (req, res) => {
                 CASE WHEN palclave  IS NOT NULL AND TRIM(palclave)  != '' THEN 1 ELSE 0 END
                 AS campos_llenos
             FROM refacciones
-            WHERE 1=1 ${whereExtra}
+            WHERE 1=1 ${whereExtra} ${busqueda}
             ORDER BY campos_llenos ASC, nombreprod ASC
             LIMIT $1 OFFSET $2
         `, [LIMITE, offset]);
