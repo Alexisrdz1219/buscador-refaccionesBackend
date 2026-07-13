@@ -3218,6 +3218,140 @@ import { Request, Response, NextFunction } from "express";
     }
     });
 
+    // Refacciones con su % de completitud
+app.get("/refacciones-completitud", async (req, res) => {
+    try {
+        const { pagina = "1", filtro = "todas" } = req.query;
+        const LIMITE = 50;
+        const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
+        const offset = (paginaNum - 1) * LIMITE;
+
+        let whereExtra = "";
+        if (filtro === "incompletas") {
+            whereExtra = `AND NOT (
+                imagen IS NOT NULL AND TRIM(imagen) != '' AND
+                ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
+                tipoprod IS NOT NULL AND TRIM(tipoprod) != '' AND
+                modelo IS NOT NULL AND TRIM(modelo) != '' AND
+                proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
+                palclave IS NOT NULL AND TRIM(palclave) != ''
+            )`;
+        } else if (filtro === "completas") {
+            whereExtra = `AND (
+                imagen IS NOT NULL AND TRIM(imagen) != '' AND
+                ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
+                tipoprod IS NOT NULL AND TRIM(tipoprod) != '' AND
+                modelo IS NOT NULL AND TRIM(modelo) != '' AND
+                proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
+                palclave IS NOT NULL AND TRIM(palclave) != ''
+            )`;
+        }
+
+        const countResult = await pool.query(`
+            SELECT COUNT(*) FROM refacciones WHERE 1=1 ${whereExtra}
+        `);
+        const total = parseInt(countResult.rows[0].count);
+
+        const result = await pool.query(`
+            SELECT
+                id, nombreprod, refinterna, imagen, ubicacion,
+                tipoprod, modelo, proveedor, palclave, unidad,
+                CASE WHEN imagen    IS NOT NULL AND TRIM(imagen)    != '' THEN 1 ELSE 0 END +
+                CASE WHEN ubicacion IS NOT NULL AND TRIM(ubicacion) != '' THEN 1 ELSE 0 END +
+                CASE WHEN tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' THEN 1 ELSE 0 END +
+                CASE WHEN modelo    IS NOT NULL AND TRIM(modelo)    != '' THEN 1 ELSE 0 END +
+                CASE WHEN proveedor IS NOT NULL AND TRIM(proveedor) != '' THEN 1 ELSE 0 END +
+                CASE WHEN palclave  IS NOT NULL AND TRIM(palclave)  != '' THEN 1 ELSE 0 END
+                AS campos_llenos
+            FROM refacciones
+            WHERE 1=1 ${whereExtra}
+            ORDER BY campos_llenos ASC, nombreprod ASC
+            LIMIT $1 OFFSET $2
+        `, [LIMITE, offset]);
+
+        res.json({
+            datos: result.rows,
+            total,
+            pagina: paginaNum,
+            totalPaginas: Math.ceil(total / LIMITE)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Edición masiva
+app.put("/refacciones-masivo", async (req, res) => {
+    try {
+        const { ids, campos } = req.body;
+        // ids: array de ids
+        // campos: { tipoprod, modelo, proveedor, palclave, ubicacion }
+
+        if (!ids?.length || !campos) {
+            return res.status(400).json({ error: "Faltan datos" });
+        }
+
+        const sets: string[] = [];
+        const valores: any[] = [];
+        let contador = 1;
+
+        if (campos.tipoprod  !== undefined) { sets.push(`tipoprod  = $${contador++}`); valores.push(campos.tipoprod); }
+        if (campos.modelo    !== undefined) { sets.push(`modelo    = $${contador++}`); valores.push(campos.modelo); }
+        if (campos.proveedor !== undefined) { sets.push(`proveedor = $${contador++}`); valores.push(campos.proveedor); }
+        if (campos.palclave  !== undefined) { sets.push(`palclave  = $${contador++}`); valores.push(campos.palclave); }
+        if (campos.ubicacion !== undefined) { sets.push(`ubicacion = $${contador++}`); valores.push(campos.ubicacion); }
+
+        if (!sets.length) return res.status(400).json({ error: "Sin campos a actualizar" });
+
+        sets.push(`updated_at = now()`);
+
+        await pool.query(`
+            UPDATE refacciones
+            SET ${sets.join(", ")}
+            WHERE id = ANY($${contador}::int[])
+        `, [...valores, ids]);
+
+        res.json({ ok: true, actualizadas: ids.length });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Resumen de completitud
+app.get("/completitud-resumen", async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE
+                    imagen    IS NOT NULL AND TRIM(imagen)    != '' AND
+                    ubicacion IS NOT NULL AND TRIM(ubicacion) != '' AND
+                    tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '' AND
+                    modelo    IS NOT NULL AND TRIM(modelo)    != '' AND
+                    proveedor IS NOT NULL AND TRIM(proveedor) != '' AND
+                    palclave  IS NOT NULL AND TRIM(palclave)  != ''
+                ) AS completas
+            FROM refacciones
+        `);
+
+        const { total, completas } = result.rows[0];
+        res.json({
+            total:       parseInt(total),
+            completas:   parseInt(completas),
+            incompletas: parseInt(total) - parseInt(completas),
+            porcentaje:  total > 0 ? Math.round((completas / total) * 100) : 0
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
     app.post("/historial-uso", async (req, res) => {
       try {
         const {
