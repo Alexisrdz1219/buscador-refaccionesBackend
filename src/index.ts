@@ -167,6 +167,26 @@ app.get("/buscar-codigo", async (req, res) => {
 
 });
 
+// app.get("/buscar-sugerencias", async (req, res) => {
+//     try {
+//         const q = req.query.q?.toString().trim();
+//         if (!q || q.length < 2) return res.json([]);
+
+//         const resultado = await pool.query(`
+//             SELECT id, refInterna, nombreprod, nombre_comun, ubicacion, imagen
+//             FROM refacciones
+//             WHERE TRIM(refInterna) ILIKE $1
+//                OR TRIM(nombreprod) ILIKE $1
+//                OR TRIM(nombre_comun) ILIKE TRIM($1)
+//             LIMIT 8
+//         `, [`%${q}%`]);
+
+//         res.json(resultado.rows);
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).json({ error: "Error servidor" });
+//     }
+// });
 app.get("/buscar-sugerencias", async (req, res) => {
     try {
         const q = req.query.q?.toString().trim();
@@ -175,9 +195,12 @@ app.get("/buscar-sugerencias", async (req, res) => {
         const resultado = await pool.query(`
             SELECT id, refInterna, nombreprod, nombre_comun, ubicacion, imagen
             FROM refacciones
-            WHERE TRIM(refInterna) ILIKE $1
-               OR TRIM(nombreprod) ILIKE $1
-               OR TRIM(nombre_comun) ILIKE TRIM($1)
+            WHERE (oculta = false OR oculta IS NULL)
+              AND (
+                TRIM(refInterna) ILIKE $1
+                OR TRIM(nombreprod) ILIKE $1
+                OR TRIM(nombre_comun) ILIKE TRIM($1)
+              )
             LIMIT 8
         `, [`%${q}%`]);
 
@@ -479,6 +502,41 @@ app.get("/inicio-datos", async (req, res) => {
     }
 });
 
+// app.get("/filtros-busqueda", async (req, res) => {
+//     try {
+//         const { tit } = req.query;
+//         if (!tit) return res.json({});
+
+//         const resultado = await pool.query(`
+//             SELECT
+//                 array_agg(DISTINCT tipoprod) FILTER (WHERE tipoprod IS NOT NULL AND TRIM(tipoprod) != '') AS tipos,
+//                 array_agg(DISTINCT medidas)  FILTER (WHERE medidas  IS NOT NULL AND TRIM(medidas)  != '') AS medidas,
+//                 array_agg(DISTINCT color)    FILTER (WHERE color    IS NOT NULL AND TRIM(color)    != '') AS colores,
+//                 array_agg(DISTINCT marca)    FILTER (WHERE marca    IS NOT NULL AND TRIM(marca)    != '') AS marcas,
+//                 array_agg(DISTINCT proveedor) FILTER (WHERE proveedor IS NOT NULL AND TRIM(proveedor) != '') AS proveedores
+//             FROM refacciones
+//             WHERE LOWER(nombreprod) LIKE LOWER($1)
+//                OR LOWER(refinterna) LIKE LOWER($1)
+//                OR LOWER(modelo)     LIKE LOWER($1)
+//                OR LOWER(palclave)   LIKE LOWER($1)
+//                OR LOWER(maquinamod) LIKE LOWER($1)
+//                OR LOWER(maquinaesp) LIKE LOWER($1)
+//         `, [`%${tit}%`]);
+
+//         const row = resultado.rows[0];
+//         res.json({
+//             tipoprod:  (row.tipos       || []).sort(),
+//             medidas:   (row.medidas     || []).sort(),
+//             color:     (row.colores     || []).sort(),
+//             marca:     (row.marcas      || []).sort(),
+//             proveedor: (row.proveedores || []).sort(),
+//         });
+
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({});
+//     }
+// });
 app.get("/filtros-busqueda", async (req, res) => {
     try {
         const { tit } = req.query;
@@ -492,12 +550,15 @@ app.get("/filtros-busqueda", async (req, res) => {
                 array_agg(DISTINCT marca)    FILTER (WHERE marca    IS NOT NULL AND TRIM(marca)    != '') AS marcas,
                 array_agg(DISTINCT proveedor) FILTER (WHERE proveedor IS NOT NULL AND TRIM(proveedor) != '') AS proveedores
             FROM refacciones
-            WHERE LOWER(nombreprod) LIKE LOWER($1)
-               OR LOWER(refinterna) LIKE LOWER($1)
-               OR LOWER(modelo)     LIKE LOWER($1)
-               OR LOWER(palclave)   LIKE LOWER($1)
-               OR LOWER(maquinamod) LIKE LOWER($1)
-               OR LOWER(maquinaesp) LIKE LOWER($1)
+            WHERE (oculta = false OR oculta IS NULL)
+              AND (
+                LOWER(nombreprod) LIKE LOWER($1)
+                OR LOWER(refinterna) LIKE LOWER($1)
+                OR LOWER(modelo)     LIKE LOWER($1)
+                OR LOWER(palclave)   LIKE LOWER($1)
+                OR LOWER(maquinamod) LIKE LOWER($1)
+                OR LOWER(maquinaesp) LIKE LOWER($1)
+              )
         `, [`%${tit}%`]);
 
         const row = resultado.rows[0];
@@ -2094,6 +2155,7 @@ app.get("/stock-bajo", async (req, res) => {
                 EXTRACT(DAY FROM now() - COALESCE(fecha_alerta, created_at))::int AS dias_en_alerta
             FROM refacciones
             WHERE alerta_activa = true
+            AND (oculta = false OR oculta IS NULL)
             ORDER BY nombreprod ASC
         `);
         res.json(resultado.rows);
@@ -2161,6 +2223,7 @@ app.get("/stock-bajo/resumen", async (req, res) => {
       LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
       LEFT JOIN tags t ON t.id = rt.tag_id
       WHERE LOWER(TRIM(m.maquinamod)) = LOWER(TRIM($1))
+      AND (r.oculta = false OR r.oculta IS NULL)
       GROUP BY r.id
       ORDER BY r.id ASC
     `, [maquinamod]);
@@ -2336,7 +2399,7 @@ app.get("/stock-bajo/resumen", async (req, res) => {
   try {
     const { tit, ref, modelo, tipo, unidad, palabras, pagina = "1" } = req.query;
 
-    let condiciones: string[] = [];
+    let condiciones: string[] = ["(r.oculta = false OR r.oculta IS NULL)"];
     let valores: any[] = [];
     let contador = 1;
 
@@ -2451,7 +2514,7 @@ app.get("/orings", async (req, res) => {
     try {
         const { q, material, medida_interior, medida_exterior, grosor, molde, pagina = "1" } = req.query;
 
-        let condiciones: string[] = ["r.es_oring = true"];
+        let condiciones: string[] = ["r.es_oring = true", "(r.oculta = false OR r.oculta IS NULL)"];
         let valores: any[] = [];
         let contador = 1;
 
@@ -2571,11 +2634,55 @@ app.get("/orings", async (req, res) => {
 //         res.status(500).json({});
 //     }
 // });
+// app.get("/orings/filtros", async (req, res) => {
+//     try {
+//         const { q } = req.query;
+
+//         let where = "WHERE es_oring = true";
+//         let valores: any[] = [];
+
+//         if (q) {
+//             where += ` AND (LOWER(nombreprod) LIKE LOWER($1) OR LOWER(refinterna) LIKE LOWER($1))`;
+//             valores.push(`%${q}%`);
+//         }
+
+//         const resultado = await pool.query(`
+//             SELECT
+//                 array_agg(DISTINCT material)        FILTER (WHERE material        IS NOT NULL AND TRIM(material)        != '') AS materiales,
+//                 array_agg(DISTINCT medida_interior) FILTER (WHERE medida_interior IS NOT NULL AND TRIM(medida_interior) != '') AS medidas_int,
+//                 array_agg(DISTINCT medida_exterior) FILTER (WHERE medida_exterior IS NOT NULL AND TRIM(medida_exterior) != '') AS medidas_ext,
+//                 array_agg(DISTINCT grosor)          FILTER (WHERE grosor          IS NOT NULL AND TRIM(grosor)          != '') AS grosores,
+//                 array_agg(DISTINCT molde)           FILTER (WHERE molde           IS NOT NULL AND TRIM(molde)           != '') AS moldes
+//             FROM refacciones
+//             ${where}
+//         `, valores);
+
+//         const row = resultado.rows[0];
+
+//         // ← agrega esto antes del res.json
+//         const moldesTodos = (row.moldes || [])
+//             .flatMap((m: string) => m.split("|").map((v: string) => v.trim()))
+//             .filter((v: string) => v !== "");
+//         const moldesUnicos = [...new Set(moldesTodos)].sort();
+
+//         res.json({
+//             material:        (row.materiales  || []).sort(),
+//             medida_interior: (row.medidas_int || []).sort(),
+//             medida_exterior: (row.medidas_ext || []).sort(),
+//             grosor:          (row.grosores    || []).sort(),
+//             molde:           moldesUnicos,
+//         });
+
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({});
+//     }
+// });
 app.get("/orings/filtros", async (req, res) => {
     try {
         const { q } = req.query;
 
-        let where = "WHERE es_oring = true";
+        let where = "WHERE es_oring = true AND (oculta = false OR oculta IS NULL)";
         let valores: any[] = [];
 
         if (q) {
@@ -2596,7 +2703,6 @@ app.get("/orings/filtros", async (req, res) => {
 
         const row = resultado.rows[0];
 
-        // ← agrega esto antes del res.json
         const moldesTodos = (row.moldes || [])
             .flatMap((m: string) => m.split("|").map((v: string) => v.trim()))
             .filter((v: string) => v !== "");
