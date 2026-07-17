@@ -2792,6 +2792,63 @@ app.delete("/usos/:id", async (req, res) => {
   }
 });
 
+// Obtener refacciones ocultas
+app.get("/refacciones-ocultas", async (req, res) => {
+    try {
+        const { pagina = "1", q = "" } = req.query;
+        const LIMITE = 50;
+        const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
+        const offset = (paginaNum - 1) * LIMITE;
+
+        const busqueda = q
+            ? `AND (LOWER(nombreprod) LIKE LOWER('%${(q as string).replace(/'/g, "''")}%') OR LOWER(refinterna) LIKE LOWER('%${(q as string).replace(/'/g, "''")}%'))`
+            : "";
+
+        const countResult = await pool.query(`
+            SELECT COUNT(*) FROM refacciones
+            WHERE oculta = true ${busqueda}
+        `);
+        const total = parseInt(countResult.rows[0].count);
+
+        const result = await pool.query(`
+            SELECT id, nombreprod, refinterna, imagen, ubicacion,
+                   tipoprod, modelo, marca, proveedor, cantidad, unidad
+            FROM refacciones
+            WHERE oculta = true ${busqueda}
+            ORDER BY nombreprod ASC
+            LIMIT $1 OFFSET $2
+        `, [LIMITE, offset]);
+
+        res.json({
+            datos: result.rows,
+            total,
+            pagina: paginaNum,
+            totalPaginas: Math.ceil(total / LIMITE)
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Mostrar/ocultar masivo
+app.put("/refacciones-ocultar", async (req, res) => {
+    try {
+        const { ids, oculta } = req.body;
+        if (!ids?.length) return res.status(400).json({ error: "Faltan ids" });
+
+        await pool.query(`
+            UPDATE refacciones SET oculta = $1 WHERE id = ANY($2::int[])
+        `, [oculta, ids]);
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
 app.get("/orings", async (req, res) => {
   try {
     const result = await pool.query(
