@@ -3388,7 +3388,7 @@ app.get("/refacciones-completitud", async (req, res) => {
         const LIMITE = 50;
         const paginaNum = Math.max(1, parseInt(pagina as string) || 1);
         const offset = (paginaNum - 1) * LIMITE;
-
+      
         let whereExtra = "";
         if (filtro === "incompletas") {
             whereExtra = `AND NOT (
@@ -3428,7 +3428,10 @@ app.get("/refacciones-completitud", async (req, res) => {
         if (pct === "100")   wherePct = `AND ${camposExpr} = 6`;
 
         const countResult = await pool.query(`
-            SELECT COUNT(*) FROM refacciones WHERE 1=1 ${whereExtra} ${wherePct}
+            SELECT COUNT(*) FROM refacciones 
+            WHERE 1=1 
+            AND (oculta = false OR oculta IS NULL) 
+            ${whereExtra} ${wherePct}
         `);
         const total = parseInt(countResult.rows[0].count);
 
@@ -3438,6 +3441,7 @@ app.get("/refacciones-completitud", async (req, res) => {
                 tipoprod, modelo, proveedor, palclave, unidad,
                 ${camposExpr} AS campos_llenos
             FROM refacciones
+             AND (oculta = false OR oculta IS NULL)
             WHERE 1=1 ${whereExtra} ${wherePct}
             ORDER BY campos_llenos ASC, nombreprod ASC
             LIMIT $1 OFFSET $2
@@ -3510,6 +3514,7 @@ app.get("/completitud-resumen", async (req, res) => {
                     palclave  IS NOT NULL AND TRIM(palclave)  != ''
                 ) AS completas
             FROM refacciones
+            WHERE (oculta = false OR oculta IS NULL)
         `);
 
         const { total, completas } = result.rows[0];
