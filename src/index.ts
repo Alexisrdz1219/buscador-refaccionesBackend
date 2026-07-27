@@ -3441,8 +3441,8 @@ app.get("/refacciones-completitud", async (req, res) => {
                 tipoprod, modelo, proveedor, palclave, unidad,
                 ${camposExpr} AS campos_llenos
             FROM refacciones
-             AND (oculta = false OR oculta IS NULL)
             WHERE 1=1 ${whereExtra} ${wherePct}
+            AND (oculta = false OR oculta IS NULL)
             ORDER BY campos_llenos ASC, nombreprod ASC
             LIMIT $1 OFFSET $2
         `, [LIMITE, offset]);
