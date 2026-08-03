@@ -889,6 +889,22 @@ await verificarStockBajo(idActualizado);
     }
     );
 
+    // ← agrega esta función arriba del endpoint
+function excelFechaADate(valor: any): Date | null {
+    if (!valor) return null;
+    // Si ya es fecha
+    if (valor instanceof Date) return valor;
+    // Si es número serial de Excel
+    if (typeof valor === "number") {
+        // Excel cuenta días desde 1900-01-01
+        const fecha = new Date((valor - 25569) * 86400 * 1000);
+        return fecha;
+    }
+    // Si es string intenta parsear
+    const d = new Date(valor);
+    return isNaN(d.getTime()) ? null : d;
+}
+
     app.post("/importar-envios", upload.single("file"), async (req, res) => {
     try {
         const workbook = XLSX.read(req.file!.buffer);
@@ -907,7 +923,7 @@ await verificarStockBajo(idActualizado);
                     referencia:        row["Referencia"],
                     contacto:          row["Contacto"]          || null,
                     documento_origen:  row["Documento origen"]  || null,
-                    fecha_programada:  row["Fecha programada"]  || null,
+                    fecha_programada:  excelFechaADate(row["Fecha programada"]),
                 };
             }
 
