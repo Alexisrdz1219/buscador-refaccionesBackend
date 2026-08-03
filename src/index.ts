@@ -107,6 +107,70 @@ import sharp from "sharp";
   }
     });
 
+    // Obtener envíos activos con detalle
+app.get("/envios", async (req, res) => {
+    try {
+        const resultado = await pool.query(`
+            SELECT
+                id, nombreprod, refinterna, imagen, ubicacion,
+                cantidad, unidad, modelo, marca,
+                fecha_envio, nota_envio, proveedor_envio, num_pedido,
+                EXTRACT(DAY FROM now() - COALESCE(fecha_envio, now()))::int AS dias_esperando
+            FROM refacciones
+            WHERE en_envio = true
+              AND (oculta = false OR oculta IS NULL)
+            ORDER BY fecha_envio ASC NULLS LAST
+        `);
+        res.json(resultado.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Actualizar datos de envío
+app.put("/envios/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nota_envio, proveedor_envio, num_pedido, fecha_envio } = req.body;
+
+        await pool.query(`
+            UPDATE refacciones SET
+                nota_envio      = $1,
+                proveedor_envio = $2,
+                num_pedido      = $3,
+                fecha_envio     = $4,
+                updated_at      = now()
+            WHERE id = $5
+        `, [nota_envio, proveedor_envio, num_pedido, fecha_envio || null, id]);
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
+// Marcar como recibido manualmente
+app.put("/envios/:id/recibido", async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query(`
+            UPDATE refacciones SET
+                en_envio        = false,
+                fecha_envio     = NULL,
+                nota_envio      = NULL,
+                proveedor_envio = NULL,
+                num_pedido      = NULL,
+                updated_at      = now()
+            WHERE id = $1
+        `, [id]);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
 
 app.get("/refacciones/envio", async (req, res) => {
 
@@ -737,12 +801,29 @@ app.post("/refacciones", upload.single("imagen"), async (req, res) => {
           );
 
           if (existe.rows.length > 0) {
+
+            const actual = await pool.query(
+        "SELECT cantidad, en_envio FROM refacciones WHERE refinterna = $1",
+        [row.refInterna]
+    );
+
+    const cantidadAntes = actual.rows[0]?.cantidad || 0;
+    const estaEnEnvio   = actual.rows[0]?.en_envio || false;
+    const cantidadNueva = Number(row.cantidad) || 0;
+    const stockSubio    = cantidadNueva > cantidadAntes;
+
             //  ACTUALIZAR SOLO CANTIDAD
-            await pool.query(
-              "UPDATE refacciones SET cantidad = $1 WHERE refinterna = $2",
-              [Number(row.cantidad) || 0, row.refInterna]
-            );
-            actualizados++;
+            await pool.query(`
+        UPDATE refacciones 
+        SET cantidad = $1
+        ${estaEnEnvio && stockSubio ? ", en_envio = false, fecha_envio = NULL" : ""}
+        WHERE refinterna = $2
+    `, [cantidadNueva, row.refInterna]);
+
+    actualizados++;
+
+    const idActualizado = existe.rows[0].id;
+await verificarStockBajo(idActualizado);
 
           } else {
             //  INSERTAR NUEVO
@@ -1435,13 +1516,24 @@ app.post(
           const refaccionId = existe.rows[0].id;
 
           // 🔹 Obtener palabras actuales
+          // const actual = await pool.query(
+          //   "SELECT palclave FROM refacciones WHERE refinterna = $1",
+          //   [data.refInterna]
+          // );
           const actual = await pool.query(
-            "SELECT palclave FROM refacciones WHERE refinterna = $1",
-            [data.refInterna]
+          "SELECT palclave, cantidad, en_envio FROM refacciones WHERE refinterna = $1",
+          [data.refInterna]
           );
 
           const palActual = actual.rows[0]?.palclave || "";
+          const cantidadAntes = actual.rows[0]?.cantidad  || 0;
+          const estaEnEnvio   = actual.rows[0]?.en_envio  || false;
+          const cantidadNueva = limpiarCantidad(data.cantidad) || 0;
           const palNuevaRaw = data.palClave || "";
+
+          // ← Si estaba en envío y el stock subió, desactivar envío
+          const stockSubio = cantidadNueva > cantidadAntes;
+          const desactivarEnvio = estaEnEnvio && stockSubio;
 
           function procesarPalabras(texto: string) {
             return texto
@@ -1463,15 +1555,11 @@ app.post(
             `
             UPDATE refacciones 
             SET cantidad = $1, palclave = $2 
+            ${desactivarEnvio ? ", en_envio = false, fecha_envio = NULL" : ""}
             WHERE refinterna = $3
             RETURNING id
             `,
-            [
-              limpiarCantidad(data.cantidad) || 0,
-              palFinal,
-              data.refInterna
-            ]
-          );
+            [cantidadNueva, palFinal, data.refInterna]);
 
           actualizados++;
 
