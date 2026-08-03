@@ -889,7 +889,83 @@ await verificarStockBajo(idActualizado);
     }
     );
 
-   app.get("/refacciones/destacadas", async (req, res) => {
+    app.post("/importar-envios", upload.single("file"), async (req, res) => {
+    try {
+        const workbook = XLSX.read(req.file!.buffer);
+        const sheet    = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
+
+        let marcadas    = 0;
+        let noEncontradas: string[] = [];
+        let pedidoActual: any = null;
+
+        for (const row of rows) {
+
+            // Si tiene Referencia, es un nuevo pedido
+            if (row["Referencia"]) {
+                pedidoActual = {
+                    referencia:        row["Referencia"],
+                    contacto:          row["Contacto"]          || null,
+                    documento_origen:  row["Documento origen"]  || null,
+                    fecha_programada:  row["Fecha programada"]  || null,
+                };
+            }
+
+            // Extraer refinterna de la columna de movimiento [R03451] NOMBRE
+            const linea = row["Movimiento de existencias/Línea de movimiento"];
+            if (!linea || !pedidoActual) continue;
+
+            const match = String(linea).match(/\[([^\]]+)\]/);
+            if (!match) continue;
+
+            const refinterna = match[1].trim();
+
+            // Buscar en BD
+            const existe = await pool.query(`
+                SELECT id FROM refacciones WHERE TRIM(refinterna) = TRIM($1)
+            `, [refinterna]);
+
+            if (!existe.rows.length) {
+                noEncontradas.push(refinterna);
+                continue;
+            }
+
+            const id = existe.rows[0].id;
+
+            // Marcar como en envío con datos del pedido
+            await pool.query(`
+                UPDATE refacciones SET
+                    en_envio        = true,
+                    fecha_envio     = $1,
+                    proveedor_envio = $2,
+                    num_pedido      = $3,
+                    updated_at      = now()
+                WHERE id = $4
+            `, [
+                pedidoActual.fecha_programada,
+                pedidoActual.contacto,
+                pedidoActual.referencia,
+                id
+            ]);
+
+            marcadas++;
+        }
+
+        res.json({
+            ok: true,
+            marcadas,
+            noEncontradas,
+            noEncontradasCount: noEncontradas.length
+        });
+
+    } catch (error) {
+        const err = error as Error;
+        console.error("ERROR importar-envios:", err.message);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+  app.get("/refacciones/destacadas", async (req, res) => {
 
     const inicio = Date.now();
 
