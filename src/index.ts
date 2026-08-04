@@ -566,74 +566,58 @@ app.get("/inicio-datos", async (req, res) => {
     }
 });
 
-// app.get("/filtros-busqueda", async (req, res) => {
-//     try {
-//         const { tit } = req.query;
-//         if (!tit) return res.json({});
-
-//         const resultado = await pool.query(`
-//             SELECT
-//                 array_agg(DISTINCT tipoprod) FILTER (WHERE tipoprod IS NOT NULL AND TRIM(tipoprod) != '') AS tipos,
-//                 array_agg(DISTINCT medidas)  FILTER (WHERE medidas  IS NOT NULL AND TRIM(medidas)  != '') AS medidas,
-//                 array_agg(DISTINCT color)    FILTER (WHERE color    IS NOT NULL AND TRIM(color)    != '') AS colores,
-//                 array_agg(DISTINCT marca)    FILTER (WHERE marca    IS NOT NULL AND TRIM(marca)    != '') AS marcas,
-//                 array_agg(DISTINCT proveedor) FILTER (WHERE proveedor IS NOT NULL AND TRIM(proveedor) != '') AS proveedores
-//             FROM refacciones
-//             WHERE LOWER(nombreprod) LIKE LOWER($1)
-//                OR LOWER(refinterna) LIKE LOWER($1)
-//                OR LOWER(modelo)     LIKE LOWER($1)
-//                OR LOWER(palclave)   LIKE LOWER($1)
-//                OR LOWER(maquinamod) LIKE LOWER($1)
-//                OR LOWER(maquinaesp) LIKE LOWER($1)
-//         `, [`%${tit}%`]);
-
-//         const row = resultado.rows[0];
-//         res.json({
-//             tipoprod:  (row.tipos       || []).sort(),
-//             medidas:   (row.medidas     || []).sort(),
-//             color:     (row.colores     || []).sort(),
-//             marca:     (row.marcas      || []).sort(),
-//             proveedor: (row.proveedores || []).sort(),
-//         });
-
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({});
-//     }
-// });
 app.get("/filtros-busqueda", async (req, res) => {
     try {
         const { tit } = req.query;
         if (!tit) return res.json({});
 
-        const resultado = await pool.query(`
-            SELECT
-                array_agg(DISTINCT tipoprod) FILTER (WHERE tipoprod IS NOT NULL AND TRIM(tipoprod) != '') AS tipos,
-                array_agg(DISTINCT medidas)  FILTER (WHERE medidas  IS NOT NULL AND TRIM(medidas)  != '') AS medidas,
-                array_agg(DISTINCT color)    FILTER (WHERE color    IS NOT NULL AND TRIM(color)    != '') AS colores,
-                array_agg(DISTINCT marca)    FILTER (WHERE marca    IS NOT NULL AND TRIM(marca)    != '') AS marcas,
-                array_agg(DISTINCT proveedor) FILTER (WHERE proveedor IS NOT NULL AND TRIM(proveedor) != '') AS proveedores
-            array_agg(DISTINCT ap) FILTER (WHERE ap IS NOT NULL AND TRIM(ap) != '') AS aplicaciones  -- ← agrega esto
-    FROM refacciones, unnest(aplicaciones) AS ap  -- ← unnest para expandir el array
-    WHERE (oculta = false OR oculta IS NULL)
-              AND (
-                LOWER(nombreprod) LIKE LOWER($1)
-                OR LOWER(refinterna) LIKE LOWER($1)
-                OR LOWER(modelo)     LIKE LOWER($1)
-                OR LOWER(palclave)   LIKE LOWER($1)
-                OR LOWER(maquinamod) LIKE LOWER($1)
-                OR LOWER(maquinaesp) LIKE LOWER($1)
-              )
-        `, [`%${tit}%`]);
+        const busqueda = `%${tit}%`;
 
-        const row = resultado.rows[0];
+        // Query 1 — campos normales
+        const r1 = await pool.query(`
+            SELECT
+                array_agg(DISTINCT tipoprod)  FILTER (WHERE tipoprod  IS NOT NULL AND TRIM(tipoprod)  != '') AS tipos,
+                array_agg(DISTINCT medidas)   FILTER (WHERE medidas   IS NOT NULL AND TRIM(medidas)   != '') AS medidas,
+                array_agg(DISTINCT color)     FILTER (WHERE color     IS NOT NULL AND TRIM(color)     != '') AS colores,
+                array_agg(DISTINCT marca)     FILTER (WHERE marca     IS NOT NULL AND TRIM(marca)     != '') AS marcas,
+                array_agg(DISTINCT proveedor) FILTER (WHERE proveedor IS NOT NULL AND TRIM(proveedor) != '') AS proveedores
+            FROM refacciones
+            WHERE (oculta = false OR oculta IS NULL)
+              AND (
+                LOWER(nombreprod) LIKE LOWER($1) OR
+                LOWER(refinterna) LIKE LOWER($1) OR
+                LOWER(modelo)     LIKE LOWER($1) OR
+                LOWER(palclave)   LIKE LOWER($1) OR
+                LOWER(maquinamod) LIKE LOWER($1) OR
+                LOWER(maquinaesp) LIKE LOWER($1)
+              )
+        `, [busqueda]);
+
+        // Query 2 — aplicaciones (unnest del array)
+        const r2 = await pool.query(`
+            SELECT DISTINCT ap
+            FROM refacciones, unnest(aplicaciones) AS ap
+            WHERE (oculta = false OR oculta IS NULL)
+              AND ap IS NOT NULL AND TRIM(ap) != ''
+              AND (
+                LOWER(nombreprod) LIKE LOWER($1) OR
+                LOWER(refinterna) LIKE LOWER($1) OR
+                LOWER(modelo)     LIKE LOWER($1) OR
+                LOWER(palclave)   LIKE LOWER($1) OR
+                LOWER(maquinamod) LIKE LOWER($1) OR
+                LOWER(maquinaesp) LIKE LOWER($1)
+              )
+            ORDER BY ap ASC
+        `, [busqueda]);
+
+        const row = r1.rows[0];
         res.json({
             tipoprod:     (row.tipos       || []).sort(),
             medidas:      (row.medidas     || []).sort(),
             color:        (row.colores     || []).sort(),
             marca:        (row.marcas      || []).sort(),
             proveedor:    (row.proveedores || []).sort(),
-            aplicaciones: (row.aplicaciones || []).sort()
+            aplicaciones: r2.rows.map(r => r.ap),
         });
 
     } catch (error) {
