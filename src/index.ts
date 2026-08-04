@@ -1449,128 +1449,162 @@ await verificarStockBajo(Number(id));
 
       return Math.floor(num); // ⬅️ redondea hacia abajo
     }
-    // IMPORTAR DESDE ODOO, ACTUALIZA CANTIDAD Y PALABRAS CLAVE
-//     app.post(
-//       "/importar-odoo",
-//       upload.single("file"),
-//       async (req, res) => {
-//         try {
-//           const workbook = XLSX.read(req.file!.buffer);
-//           const sheet = workbook.Sheets[workbook.SheetNames[0]];
-//           const rows: any[] = XLSX.utils.sheet_to_json(sheet);
 
-//           let insertados = 0;
-//           let actualizados = 0;
-//           const nuevos: any[] = [];
+// Obtener lista de aplicaciones disponibles
+app.get("/aplicaciones-lista", async (req, res) => {
+    res.json([
+        // ISBM
+        "MAQUINA ISBM 2 - AOKI SBIII-500-150",
+        "MAQUINA ISBM 3 - AOKI SBIII-500-150",
+        "MAQUINA ISBM 4 - AOKI SBIII-500-150",
+        "MAQUINA ISBM 5 - AOKI SBIII-500-150",
+        "MAQUINA ISBM 6 - AOKI SBIII-500-150",
+        "MAQUINA ISBM 7 - ASB 150DP",
+        "MAQUINA ISBM 8 - ASB 150DP",
+        "MAQUINA ISBM 9 - ASB 150DP",
+        "MAQUINA ISBM 10 - ASB 150 DP STD",
+        "MAQUINA ISBM 12M #1 - ASB 12M",
+        // INYECTORAS
+        "MAQUINA INYECTORA 1 - NISSEI FS 160",
+        "MAQUINA INYECTORA 2 - KRAUSS MAFFEI KM110",
+        "MAQUINA INYECTORA 3 - NISSEI FN3000",
+        "MAQUINA INYECTORA 4 - NISSEI FNX280",
+        "MAQUINA INYECTORA 5 - NISSEI FNX280",
+        "MAQUINA INYECTORA 6 - SUMITOMO SYSTEC 280",
+        "MAQUINA INYECTORA 7 - SUMITOMO SYSTEC 580",
+        "MAQUINA INYECTORA 8 - SUMITOMO INTELECT2 S 220",
+        "MAQUINA INYECTORA 9 - SUMITOMO SYSTEC 280 #2",
+        "MAQUINA INYECTORA 10 - SUMITOMO SYSTEC 580 #2",
+        "MAQUINA INYECTORA 11 - NISSEI FNX220",
+        // ENLAINADORAS
+        "ENLAINADORA 1 - AUTING SMN-03",
+        "ENLAINADORA 2 - AUTING LSM-025",
+        "ENLAINADORA 3 - AUTING LSM-025",
+        // OTRAS MÁQUINAS
+        "MAQUINA REVOLVEDORA 1",
+        "MAQUINA REVOLVEDORA 2 - XHS-50KGS",
+        "MOLINO PAGANI 1",
+        "MOLINO RAPID 2",
+        "MOLINO RAPID 3",
+        // TERMOREGULADORES
+        "TERMOREGULADOR PARA AOKI'S",
+        "TERMOREGULADOR ISBM 7 - PIOVAN TH0118F",
+        "TERMOREGULADOR ISBM 8 - PIOVAN TH0118F",
+        "TERMOREGULADOR ISBM 9 - PIOVAN TH0118F(BM)",
+        "TERMOREGULADOR ISBM 9 - PIOVAN TH0118F(CC)",
+        "TERMOREGULADOR ISBM 10 - PIOVAN TH0118",
+        "TERMOREGULADOR ISBM 12M - PIOVAN TH05",
+        // CHILLERS ISBM
+        "CHILLER ISBM 8 - PIOVAN MOD. 620",
+        "CHILLER ISBM 3, 4 & 5 - PIOVAN MOD. 620",
+        "CHILLER ISBM 6 & 7 - PIOVAN MOD. 620",
+        "CHILLER ISBM 7 - EUROKLIMAT EK-602",
+        "CHILLER ISBM 10 - FRIGEL RSD 210",
+        "CHILLER ISBM 9 - FRIGEL RSD 210/24E",
+        "CHILLER ISBM 12M - PRASAD WECO 13L",
+        // CHILLERS INYECTORAS
+        "CHILLER INY 1 - FRIGEL RSD 80",
+        "CHILLER INY 2 - FRIGEL RSD 80",
+        "CHILLER INY 3 - FRIGEL RSD 80",
+        "CHILLER INY 4 - FRIGEL RSD 80",
+        "CHILLER INY 5 - FRIGEL RSD 80",
+        "CHILLER INY 6 - FRIGEL RSD 180",
+        "CHILLER INY 7 - PIOVAN MOD. 1420",
+        "CHILLER INY 8 - FRIGEL RSD 180",
+        "CHILLER INY 9 - FRIGEL RSD180",
+        "CHILLER INY 10 - FRIGEL RCD300",
+        // MOLDES TAPAS
+        "MOLDE TAPA 70mm ESPEJO - 4 CAVIDADES TDM",
+        "MOLDE TAPA 89mm ESPEJO - 4 CAVIDADES",
+        "MOLDE TAPA 96mm ESPEJO - 4 CAVIDADES STACKTECK",
+        "MOLDE TAPA 110mm ESPEJO #1 - 4 CAVIDADES STACKTECK",
+        "MOLDE TAPA 110mm ESPEJO #2 - 4 CAVIDADES STACKTECK",
+        "MOLDE TAPA VERTEDERO (CUERPOS)",
+        "MOLDE TAPA VERTEDERO (ACCESORIOS)",
+        "MOLDE TAPA 110mm EROSIONADA #1 - 8 CAVIDADES STACKTECK",
+        "MOLDE TAPA 110mm EROSIONADA #2 - 8 CAVIDADES STACKTECK",
+        "MOLDE TAPA CUBETA 19L - 1 CAVIDAD CALFRAMAX",
+        "MOLDE TAPA CUBETA 19L - 1 CAVIDAD TOP GRADE",
+        "MOLDE TAPA 63mm - 4 CAVIDADES TOP GRADE",
+        // MOLDES CUBETAS
+        "MOLDE CUBETA 19L - 1 CAVIDAD CALFRAMAX",
+        "MOLDE CUBETA 19L IML - 1 CAVIDAD SYBRIDGE",
+        "MOLDE CUBETA 19L IML #2 - 1 CAVIDAD TOP GRADE",
+        // MOLDES BT
+        "MOLDE BT-0940 (46 Oz y 600gr)",
+        "MOLDE BT-1630 (KILO GEL)",
+        "MOLDE BT-2160 (MG)",
+        "MOLDE BT-2161 (MGL, MGA, MGE, LL)",
+        "MOLDE BT-2710 (GLC)",
+        "MOLDE BT-2711 (GLC)",
+        "MOLDE BT-2220 (GC 3.7)",
+        "MOLDE BT-2330 (250gr GEL)",
+        "MOLDE BT-2711 (VITROLERO 4010ML)",
+        // MOLDES NC
+        "MOLDE 368KA0309 (MIELERO)",
+        "MOLDE 408K1546 (LITRO ANILLADO)",
+        "MOLDE 408K1546 (CGL)",
+        "MOLDE 448KA3033 (NUCOLATO)",
+        "MOLDE 368NC0115 (MGC 64Oz #1)",
+        "MOLDE 388NC0146 (MGC 64Oz #2)",
+        "MOLDE 398NC0156 (GC 3.7)",
+        "MOLDE 458NC0366 (MGC 52Oz #1)",
+        "MOLDE 458NC0367 (MGC 52Oz #2)",
+        "MOLDE 468NC0433 (MGC 52OZ #3)",
+        "MOLDE 458NC0368 (MEGA HDPE)",
+        // COMPRESORES Y SECADORES
+        "COMPRESOR AF 1 - CE6",
+        "SECADOR AF 1 - HPEYT6",
+        "TORRE BAC 1 - VFL02432J",
+        "COMPRESOR AF 2 - L6B",
+        "SECADOR AF 2 - HPEYT7.5",
+        "TORRE BAC 2 - PFL02432H",
+        "COMPRESOR B&M 1 - BVH9H3N 75HP",
+        "SECADOR B&M 1 - 80300",
+        "COMPRESOR B&M 2 - VH9H3N 125HP",
+        "SECADOR B&M 2 - 80300",
+        "COMPRESOR SULLAIR 1 - LS1260XHWC",
+        "SECADOR SULLAIR 1 - SRD190AC",
+        "COMPRESOR SULLAIR 2 - SN75S-12",
+        "SECADOR SULLAIR 2 - SR+600",
+        // SISTEMAS
+        "SISTEMA RED DE AGUA REYMSA",
+        "SISTEMA RED DE AGUA FRIGEL",
+        "SISTEMA RED DE AGUA",
+        "SUBESTACION ELECTRICA",
+        "TRANSPORTES",
+        "TALLER CNC",
+        // OTROS
+        "MAQUINA BARREDORA - ADVANCE WARRIOR ST",
+        "MAQUINA BARREDORA - T70",
+        "FILTRADORA DE ACEITE 1 - FOCUS 800/110V",
+        "FILTRADORA DE ACEITE 2 - FOCUS 800/110V",
+        "SOPLADORA DE MOCHILA STHIL BR-420",
+        "ROBOT IML - SYSTEM E1-BASIC #1",
+        "ROBOT IML - SYSTEM E1-BASIC #2",
+        "MAQUINA DE SERIGRAFIA",
+        "MAQUINA DE TAMPOGRAFIA",
+    ]);
+});
 
-//           for (const row of rows) {
+// Actualizar aplicaciones de una refacción
+app.put("/refacciones/:id/aplicaciones", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { aplicaciones } = req.body;
 
-//             // Convertimos columnas Odoo → BD
-//             const data: any = {};
+        await pool.query(`
+            UPDATE refacciones SET aplicaciones = $1, updated_at = now()
+            WHERE id = $2
+        `, [aplicaciones, id]);
 
-//             for (const colOdoo in mapOdoo) {
-//               const colBD = mapOdoo[colOdoo];
-//               data[colBD] = row[colOdoo];
-//             }
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
 
-//             if (!data.refInterna) continue;
-
-//             const existe = await pool.query(
-//               "SELECT id FROM refacciones WHERE refinterna = $1",
-//               [data.refInterna]
-//             );
-
-//             if (existe.rows.length > 0) {
-
-//               // 1️⃣ Obtener palabras actuales
-//       const actual = await pool.query(
-//       "SELECT palclave FROM refacciones WHERE refinterna = $1",
-//       [data.refInterna]
-//     );
-
-//       const palActual = actual.rows[0]?.palclave || "";
-//     const palNuevaRaw = data.palClave || "";
-
-//     function procesarPalabras(texto: string) {
-//       return texto
-//         .replace(/"/g, "")              // quitar comillas
-//         .replace(/;/g, ",")             // convertir ; en ,
-//         .split(",")                     // separar por coma
-//         .map(p => p.trim().toLowerCase())
-//         .filter(Boolean);
-//     }
-
-//       const arrActual = procesarPalabras(palActual);
-//     const arrNueva = procesarPalabras(palNuevaRaw);
-
-//       const merged = [...new Set([...arrActual, ...arrNueva])];
-
-//     const palFinal = merged.join(", ");
-
-//   // log("INFO", "Datos actuales cargados", { cantidad: arrActual.length }, "/excel-merge");
-
-//   // log("INFO", "Datos recibidos desde Excel", { cantidad: arrNueva.length }, "/excel-merge");
-
-//   // log("INFO", "Resultado final de mezcla", { cantidad: merged.length }, "/excel-merge");
-
-//               await pool.query(
-//                 "UPDATE refacciones SET cantidad = $1, palclave = $2 WHERE refinterna = $3",
-//                 [limpiarCantidad((data.cantidad)) || 0, palFinal, data.refInterna]
-//               );
-//               actualizados++;
-//               const refaccionId = existe.rows[0].id;
-
-// // await verificarStockBajo(refaccionId);
-
-//             } else {
-
-//             const insert = await pool.query(
-//   `
-//   INSERT INTO refacciones
-//   (nombreprod, refinterna, cantidad, unidad, palclave)
-//   VALUES ($1,$2,$3,$4,$5)
-//   RETURNING id
-//   `,
-//   [
-//     data.nombreProd,
-//     data.refInterna,
-//     limpiarCantidad((data.cantidad)) || 0,
-//     data.unidad,
-//     data.palClave
-//   ]
-// );
-// const refaccionId = insert.rows[0].id;
-
-// // 🔥 ALERTA AUTOMÁTICA
-// // await verificarStockBajo(refaccionId);
-
-// nuevos.push(data);
-// insertados++;
-//             }
-//           }
-
-//           res.json({
-//             ok: true,
-//             insertados,
-//             actualizados,
-//             nuevos
-//           });
-
-//         } catch (error) {
-//   const err = error as Error;
-
-//   console.log(" ERROR REAL:", err.message);
-//   console.log("STACK:", err.stack);
-
-//   log("ERROR", "Error capturado", {
-//     message: err.message,
-//     stack: err.stack
-//   }, "/server");
-
-//   res.status(500).json({ ok: false, error: err.message });
-// }
-//       }
-//     );
 app.post(
   "/importar-odoo",
   upload.single("file"),
