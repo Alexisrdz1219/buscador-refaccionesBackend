@@ -613,8 +613,9 @@ app.get("/filtros-busqueda", async (req, res) => {
                 array_agg(DISTINCT color)    FILTER (WHERE color    IS NOT NULL AND TRIM(color)    != '') AS colores,
                 array_agg(DISTINCT marca)    FILTER (WHERE marca    IS NOT NULL AND TRIM(marca)    != '') AS marcas,
                 array_agg(DISTINCT proveedor) FILTER (WHERE proveedor IS NOT NULL AND TRIM(proveedor) != '') AS proveedores
-            FROM refacciones
-            WHERE (oculta = false OR oculta IS NULL)
+            array_agg(DISTINCT ap) FILTER (WHERE ap IS NOT NULL AND TRIM(ap) != '') AS aplicaciones  -- ← agrega esto
+    FROM refacciones, unnest(aplicaciones) AS ap  -- ← unnest para expandir el array
+    WHERE (oculta = false OR oculta IS NULL)
               AND (
                 LOWER(nombreprod) LIKE LOWER($1)
                 OR LOWER(refinterna) LIKE LOWER($1)
@@ -627,11 +628,12 @@ app.get("/filtros-busqueda", async (req, res) => {
 
         const row = resultado.rows[0];
         res.json({
-            tipoprod:  (row.tipos       || []).sort(),
-            medidas:   (row.medidas     || []).sort(),
-            color:     (row.colores     || []).sort(),
-            marca:     (row.marcas      || []).sort(),
-            proveedor: (row.proveedores || []).sort(),
+            tipoprod:     (row.tipos       || []).sort(),
+            medidas:      (row.medidas     || []).sort(),
+            color:        (row.colores     || []).sort(),
+            marca:        (row.marcas      || []).sort(),
+            proveedor:    (row.proveedores || []).sort(),
+            aplicaciones: (row.aplicaciones || []).sort()
         });
 
     } catch (error) {
@@ -2467,148 +2469,7 @@ app.get("/stock-bajo/resumen", async (req, res) => {
   });
 }
 });
-    // REFACCIONES CON FILTROS DE BÚSQUEDA AVANZADA
-    // app.get("/buscar-refacciones", async (req, res) => {
 
-    //   const {
-    //     tit,
-    //     ref,
-    //     modelo,
-    //     tipo,
-    //     unidad,
-    //     palabras
-    //   } = req.query;
-
-    //   let condiciones = [];
-    //   let valores = [];
-    //   let contador = 1;
-
-    //   if (tit) {
-
-    //     const result = await pool.query(
-    //       `
-    //       SELECT *
-    //       FROM refacciones
-    //       WHERE nombreprod ILIKE $1
-    //       ORDER BY id DESC
-    //       LIMIT 100
-    //       `,
-    //       [`%${tit}%`]
-    //     );
-
-    //     return res.json(result.rows);
-    //   }
-
-    //   if (ref) {
-    //     condiciones.push(`refinterna ILIKE $${contador++}`);
-    //     valores.push(`%${ref}%`);
-    //   }
-
-    //   if (modelo) {
-    //     condiciones.push(`modelo ILIKE $${contador++}`);
-    //     valores.push(`%${modelo}%`);
-    //   }
-
-    //   if (tipo) {
-    //     condiciones.push(`tipoprod = $${contador++}`);
-    //     valores.push(tipo);
-    //   }
-
-    //   if (unidad) {
-    //     condiciones.push(`unidad = $${contador++}`);
-    //     valores.push(unidad);
-    //   }
-
-    //   if (palabras) {
-    //     condiciones.push(`palclave ILIKE $${contador++}`);
-    //     valores.push(`%${palabras}%`);
-    //   }
-
-    //   const where = condiciones.length
-    //     ? "WHERE " + condiciones.join(" AND ")
-    //     : "";
-
-    //   const result = await pool.query(
-    //     `SELECT *
-    //     FROM refacciones
-    //     ${where}
-    //     ORDER BY id DESC
-    //     LIMIT 100`,
-    //     valores
-    //   );
-
-    //   res.json(result.rows);
-    // });
-
-
-    // FUNCIONA
-//     app.get("/buscar-refacciones", async (req, res) => {
-//   try {
-//     const { tit, ref, modelo, tipo, unidad, palabras } = req.query;
-
-//     let condiciones = [];
-//     let valores = [];
-//     let contador = 1;
-
-//     if (tit) {
-//       condiciones.push(`LOWER(r.nombreprod) LIKE LOWER($${contador++})`);
-//       valores.push(`%${tit}%`);
-//     }
-
-//     if (ref) {
-//       condiciones.push(`LOWER(r.refinterna) LIKE LOWER($${contador++})`);
-//       valores.push(`%${ref}%`);
-//     }
-
-//     if (modelo) {
-//       condiciones.push(`LOWER(r.modelo) LIKE LOWER($${contador++})`);
-//       valores.push(`%${modelo}%`);
-//     }
-
-//     if (tipo) {
-//       condiciones.push(`r.tipoprod = $${contador++}`);
-//       valores.push(tipo);
-//     }
-
-//     if (unidad) {
-//       condiciones.push(`r.unidad = $${contador++}`);
-//       valores.push(unidad);
-//     }
-
-//     if (palabras) {
-//       condiciones.push(`LOWER(r.palclave) LIKE LOWER($${contador++})`);
-//       valores.push(`%${palabras}%`);
-//     }
-
-//     const where = condiciones.length
-//       ? "WHERE " + condiciones.join(" AND ")
-//       : "";
-
-//     const result = await pool.query(`
-//       SELECT 
-//         r.*,
-//         COALESCE(
-//           json_agg(DISTINCT t.nombre) FILTER (WHERE t.nombre IS NOT NULL),
-//           '[]'
-//         ) AS tags
-//       FROM refacciones r
-//       LEFT JOIN refacciones_tags rt ON r.id = rt.refaccion_id
-//       LEFT JOIN tags t ON t.id = rt.tag_id
-//       ${where}
-//       GROUP BY r.id
-//       ORDER BY r.id DESC
-//       LIMIT 100
-//     `, valores);
-
-//     res.json(result.rows);
-
-//   } catch (error) {
-//     res.status(500).json([]);
-//   }
-// });
-    // REFACCIONES METADATA
-  //  FUNCIONA 
-   
  app.get("/buscar-refacciones", async (req, res) => {
   try {
     const { tit, ref, modelo, tipo, unidad, palabras, pagina = "1" } = req.query;
@@ -2664,6 +2525,13 @@ if (req.query.proveedor) {
     const vals = (req.query.proveedor as string).split(",");
     condiciones.push(`r.proveedor = ANY($${contador++})`);
     valores.push(vals);
+}
+
+if (req.query.aplicacion) {
+    const val = (req.query.aplicacion as string);
+    condiciones.push(`$${contador} = ANY(r.aplicaciones)`);
+    valores.push(val);
+    contador++;
 }
     const where = condiciones.length ? "WHERE " + condiciones.join(" AND ") : "";
 
