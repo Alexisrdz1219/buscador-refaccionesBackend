@@ -1325,14 +1325,19 @@ if (estadoActual === "OK" && estadoAnterior === "OK") return;
 }
 
 app.get("/alertas", async (_, res) => {
-  const { rows } = await pool.query(`
-    SELECT a.*, r.nombreprod
-    FROM alertas_stock a
-    JOIN refacciones r ON r.id = a.refaccion_id
-    ORDER BY a.fecha DESC
-  `);
-
-  res.json(rows);
+    try {
+        const { rows } = await pool.query(`
+            SELECT a.*, r.nombreprod, r.estado_stock
+            FROM alertas_stock a
+            JOIN refacciones r ON r.id = a.refaccion_id
+            WHERE r.estado_stock = 'urgente'
+            ORDER BY a.fecha DESC
+        `);
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.json([]);
+    }
 });
 
 app.put("/alertas/:id/leida", async (req, res) => {
