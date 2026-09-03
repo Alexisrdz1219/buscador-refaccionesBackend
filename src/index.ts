@@ -2350,19 +2350,69 @@ app.delete("/proveedores/:id", async (req, res) => {
 });
 
 // Obtener todas las refacciones con stock bajo
+// app.get("/stock-bajo", async (req, res) => {
+//     try {
+//         const resultado = await pool.query(`
+//             SELECT
+//                 id, nombreprod, refinterna, modelo, marca,
+//                 cantidad, stock_minimo, ubicacion, imagen,
+//                 estado_stock, fecha_alerta, unidad,
+//                 EXTRACT(DAY FROM now() - COALESCE(fecha_alerta, created_at))::int AS dias_en_alerta
+//             FROM refacciones
+//             WHERE alerta_activa = true
+//             AND (oculta = false OR oculta IS NULL)
+//             ORDER BY nombreprod ASC
+//         `);
+//         res.json(resultado.rows);
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ error: "Error servidor" });
+//     }
+// });
 app.get("/stock-bajo", async (req, res) => {
     try {
         const resultado = await pool.query(`
             SELECT
-                id, nombreprod, refinterna, modelo, marca,
-                cantidad, stock_minimo, ubicacion, imagen,
-                estado_stock, fecha_alerta, unidad,
-                EXTRACT(DAY FROM now() - COALESCE(fecha_alerta, created_at))::int AS dias_en_alerta
-            FROM refacciones
-            WHERE alerta_activa = true
-            AND (oculta = false OR oculta IS NULL)
-            ORDER BY nombreprod ASC
+                r.id, r.nombreprod, r.refinterna, r.imagen, r.ubicacion,
+                r.cantidad, r.stock_minimo, r.unidad, r.modelo, r.marca,
+                r.estado_stock, r.fecha_alerta,
+                EXTRACT(DAY FROM now() - COALESCE(r.fecha_alerta, r.created_at))::int AS dias_en_alerta,
+
+                -- ← agrega esto
+                COALESCE(m30.total, 0)  AS salidas_30dias,
+                COALESCE(m90.total, 0)  AS salidas_90dias,
+                m_ultima.fecha          AS ultima_salida
+
+            FROM refacciones r
+
+            -- Salidas últimos 30 días
+            LEFT JOIN (
+                SELECT refaccion_id, SUM(cantidad) AS total
+                FROM movimientos
+                WHERE fecha >= now() - interval '30 days'
+                GROUP BY refaccion_id
+            ) m30 ON m30.refaccion_id = r.id
+
+            -- Salidas últimos 90 días
+            LEFT JOIN (
+                SELECT refaccion_id, SUM(cantidad) AS total
+                FROM movimientos
+                WHERE fecha >= now() - interval '90 days'
+                GROUP BY refaccion_id
+            ) m90 ON m90.refaccion_id = r.id
+
+            -- Última salida
+            LEFT JOIN (
+                SELECT DISTINCT ON (refaccion_id) refaccion_id, fecha
+                FROM movimientos
+                ORDER BY refaccion_id, fecha DESC
+            ) m_ultima ON m_ultima.refaccion_id = r.id
+
+            WHERE r.alerta_activa = true
+              AND (r.oculta = false OR r.oculta IS NULL)
+            ORDER BY r.nombreprod ASC
         `);
+
         res.json(resultado.rows);
     } catch (error) {
         console.error(error);
