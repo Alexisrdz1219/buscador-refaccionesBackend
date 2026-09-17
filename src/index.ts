@@ -3256,54 +3256,56 @@ import { Request, Response, NextFunction } from "express";
         next();
       };
     }
-
-    app.get("/catalogo-categorias", async (req, res) => {
-    res.json({
-        "Ferretería, Herramientas y Consumibles": [
-            "Tornillería y Elementos de Sujeción",
-            "Herramientas Manuales y de Corte",
-            "Equipos de Protección Personal (EPP)",
-            "Insumos de Limpieza e Higiene"
-        ],
-        "Tubería, Conexiones y Valvulería": [
-            "Conexiones Plásticas y PVC",
-            "Conexiones Metálicas e Hidráulicas",
-            "Conexiones y Mangueras Generales",
-            "Válvulas y Control de Fluidos"
-        ],
-        "Mecánica, Neumática y Transmisión": [
-            "Sellos, Empaques y O-Rings",
-            "Neumática y Actuadores",
-            "Rodamientos y Transmisión de Potencia"
-        ],
-        "Eléctrico y Electrónico": [
-            "Cableado y Conectividad Eléctrica",
-            "Control, Automatización y Sensores",
-            "Iluminación"
-        ],
-        "Maquinaria, Moldes y Proceso": [
-            "Refacciones Equipos de Soplado (ISBM)",
-            "Refacciones Inyectoras",
-            "Moldes y Componentes de Moldeo",
-            "Sistemas de Enfriamiento y Auxiliares",
-            "Compresores y Generación de Aire",
-            "Robótica y Maquinaria Secundaria",
-            "Taller Mecánico y Máquinas Herramienta"
-        ],
-        "Vehículos y Equipo Móvil": [
-            "Refacciones Vehiculares y Montacargas"
-        ],
-        "Infraestructura y Planta": [
-            "Mantenimiento de Planta y Edificios"
-        ],
-        "General / Por Clasificar": [
-            "Artículos Pendientes de Revisión"
-        ]
-    });
-});
+// EN PENDIENTE
+//     app.get("/catalogo-categorias", async (req, res) => {
+//     res.json({
+//         "Ferretería, Herramientas y Consumibles": [
+//             "Tornillería y Elementos de Sujeción",
+//             "Herramientas Manuales y de Corte",
+//             "Equipos de Protección Personal (EPP)",
+//             "Insumos de Limpieza e Higiene"
+//         ],
+//         "Tubería, Conexiones y Valvulería": [
+//             "Conexiones Plásticas y PVC",
+//             "Conexiones Metálicas e Hidráulicas",
+//             "Conexiones y Mangueras Generales",
+//             "Válvulas y Control de Fluidos"
+//         ],
+//         "Mecánica, Neumática y Transmisión": [
+//             "Sellos, Empaques y O-Rings",
+//             "Neumática y Actuadores",
+//             "Rodamientos y Transmisión de Potencia"
+//         ],
+//         "Eléctrico y Electrónico": [
+//             "Cableado y Conectividad Eléctrica",
+//             "Control, Automatización y Sensores",
+//             "Iluminación"
+//         ],
+//         "Maquinaria, Moldes y Proceso": [
+//             "Refacciones Equipos de Soplado (ISBM)",
+//             "Refacciones Inyectoras",
+//             "Moldes y Componentes de Moldeo",
+//             "Sistemas de Enfriamiento y Auxiliares",
+//             "Compresores y Generación de Aire",
+//             "Robótica y Maquinaria Secundaria",
+//             "Taller Mecánico y Máquinas Herramienta"
+//         ],
+//         "Vehículos y Equipo Móvil": [
+//             "Refacciones Vehiculares y Montacargas"
+//         ],
+//         "Infraestructura y Planta": [
+//             "Mantenimiento de Planta y Edificios"
+//         ],
+//         "General / Por Clasificar": [
+//             "Artículos Pendientes de Revisión"
+//         ]
+//     });
+// });
 
 
     // PANELADMIN
+    
+    
     app.get(
       "/panel-admin",
       verificarSesion,
