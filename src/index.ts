@@ -52,7 +52,7 @@ import sharp from "sharp";
     // MAPA PARA IMPORTAR DESDE ODOO, CONVIERTE NOMBRES DE COLUMNAS DE ODOO A LOS DE NUESTRA BD
 
     // CAMBIARRRR
-    const mapOdoo: any = { "Referencia interna": "refInterna", "Cantidad a la mano": "cantidad", "Unidad de medida": "unidad", "Nombre": "nombreProd", "Etiquetas de la plantilla del producto": "palClave" };
+    const mapOdoo: any = { "Referencia interna": "refInterna", "Cantidad a la mano": "cantidad", "Unidad de medida": "unidad", "Nombre": "nombreProd", "Etiquetas": "palClave" };
 
     // Con este Get es el que manda todos los datos de la pagina con ubicacion, en el frontend
     app.get("/refacciones/con-ubicacion", async (req, res) => {
