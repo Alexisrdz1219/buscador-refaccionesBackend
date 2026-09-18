@@ -51,10 +51,9 @@ import sharp from "sharp";
     new Promise(resolve => setTimeout(resolve, ms));
     // MAPA PARA IMPORTAR DESDE ODOO, CONVIERTE NOMBRES DE COLUMNAS DE ODOO A LOS DE NUESTRA BD
 
-    // CAMBIARRRR
+    // MAPA DE EXCEL PARA CAMBIAR LA IMPORTACION EN ODOO
     const mapOdoo: any = { "Referencia interna": "refInterna", "Cantidad a la mano": "cantidad", "Unidad de medida": "unidad", "Nombre": "nombreProd", "Etiquetas": "palClave" };
 
-    // Con este Get es el que manda todos los datos de la pagina con ubicacion, en el frontend
     app.get("/refacciones/con-ubicacion", async (req, res) => {
 
   
@@ -566,6 +565,18 @@ app.get("/inicio-datos", async (req, res) => {
         res.status(500).json({ error: "Error servidor" });
     }
 });
+
+app.delete("/alertas/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query(`DELETE FROM alertas_stock WHERE id = $1`, [id]);
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error servidor" });
+    }
+});
+
 
 app.get("/filtros-busqueda", async (req, res) => {
     try {
