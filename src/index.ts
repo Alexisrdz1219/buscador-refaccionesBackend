@@ -1467,6 +1467,7 @@ app.get("/aplicaciones-lista", async (req, res) => {
         "MAQUINA ISBM 9 - ASB 150DP",
         "MAQUINA ISBM 10 - ASB 150 DP STD",
         "MAQUINA ISBM 12M #1 - ASB 12M",
+        "MAQUINA ISBM 12M #2 - ASB 12M",
         // INYECTORAS
         "MAQUINA INYECTORA 1 - NISSEI FS 160",
         "MAQUINA INYECTORA 2 - KRAUSS MAFFEI KM110",
