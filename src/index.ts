@@ -979,7 +979,41 @@ function excelFechaADate(valor: any): Date | null {
     }
 });
 
-  app.get("/refacciones/destacadas", async (req, res) => {
+//   app.get("/refacciones/destacadas", async (req, res) => {
+//     const inicio = Date.now();
+//     try {
+//       if (!pool) {
+//         log("ERROR", "Pool no disponible", {
+//           contexto: "Consulta sin conexión"
+//         }, "/database");
+//         return res.status(500).json({ ok: false });
+//       }
+//       const result = await pool.query(`
+//         SELECT id, nombreprod, modelo, ubicacion
+//         FROM refacciones
+//         WHERE destacada = true
+//         LIMIT 20
+//       `);
+//       const duracion = Date.now() - inicio;
+//       if (result.rowCount === 0 || duracion > 300) {
+//         log("INFO", "Consulta destacadas", {
+//           total: result.rowCount,
+//           tiempo: `${duracion}ms`
+//         }, "/destacadas");
+//       }
+//       res.json({
+//         ok: true,
+//         data: result.rows
+//       });
+//     } catch (err: any) {
+//       log("ERROR", "Error SQL destacadas", {
+//         message: err.message,
+//         code: err.code
+//       }, "/database");
+//       res.status(500).json({ ok: false });
+//     }
+// });
+app.get("/refacciones/destacadas", async (req, res) => {
 
     const inicio = Date.now();
 
@@ -994,7 +1028,8 @@ function excelFechaADate(valor: any): Date | null {
       }
 
       const result = await pool.query(`
-        SELECT id, nombreprod, modelo, ubicacion
+        SELECT id, nombreprod, refinterna, imagen, cantidad, unidad,
+               ubicacion, modelo, nombre_comun
         FROM refacciones
         WHERE destacada = true
         LIMIT 20
@@ -1025,7 +1060,6 @@ function excelFechaADate(valor: any): Date | null {
       res.status(500).json({ ok: false });
     }
 });
-
 
     app.put("/refacciones/:id", upload.single("imagen"), async (req, res) => {
 
