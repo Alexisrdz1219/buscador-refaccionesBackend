@@ -1198,6 +1198,41 @@ await verificarStockBajo(Number(id));
 }
     });
 
+// Marca o desmarca un movimiento como "ya pasado a Odoo".
+// body esperado: { en_odoo: true } o { en_odoo: false }
+app.put("/movimientos/:id/odoo", async (req, res) => {
+
+    const { id } = req.params;
+    const { en_odoo } = req.body;
+
+    try {
+
+        if (!pool) {
+            log("ERROR", "Pool no disponible", {
+                contexto: "Consulta sin conexión"
+            }, "/database");
+
+            return res.status(500).json({ ok: false });
+        }
+
+        await pool.query(
+            `UPDATE movimientos SET en_odoo = $1 WHERE id = $2`,
+            [en_odoo, id]
+        );
+
+        res.json({ ok: true, id: Number(id), en_odoo });
+
+    } catch (err: any) {
+
+        log("ERROR", "Error actualizando en_odoo", {
+            message: err.message,
+            code: err.code
+        }, "/database");
+
+        res.status(500).json({ ok: false });
+    }
+});
+
    app.delete("/alertas/:id", async (req, res) => {
   const { id } = req.params;
 
